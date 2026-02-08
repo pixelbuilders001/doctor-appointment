@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClinicFlow - Quick Start Guide
 
-## Getting Started
+## 🚀 What You Have
 
-First, run the development server:
+A **complete appointment booking and queue management system** with:
+
+✅ Email/Password Authentication  
+✅ Real-time Appointment Queue  
+✅ Token-based Patient Management  
+✅ Clinic Status Management  
+✅ Supabase Backend Integration  
+
+## 📋 Setup Instructions
+
+### 1. Set Up Supabase (5 minutes)
+
+Follow the detailed guide in **`SUPABASE_SETUP.md`**
+
+**Quick version:**
+1. Create project at [supabase.com](https://supabase.com)
+2. Copy API credentials to `.env.local`
+3. Run `supabase-schema.sql` in SQL Editor
+4. Disable email confirmations (for testing)
+
+### 2. Start the App
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Create Your Account
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Click **"Don't have an account? Sign up"**
+2. Enter email and password (min 6 characters)
+3. Click **"Create Account"**
+4. Sign in with your credentials
 
-## Learn More
+**Your clinic is automatically created on first signup!**
 
-To learn more about Next.js, take a look at the following resources:
+## 🎯 Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Authentication
+- Email and password login
+- Sign up / Sign in toggle
+- Password visibility toggle
+- Automatic clinic creation on signup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Dashboard
+- Today's appointment summary
+- Clinic status toggle (Available/Busy/Closed)
+- Next 3 appointments
+- Real-time updates
 
-## Deploy on Vercel
+### Appointment Queue
+- View appointments by date
+- Filter by status (Booked, Checked In, Completed)
+- Add walk-in patients
+- Update appointment status
+- Auto-generated token numbers
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Settings
+- Clinic details
+- Consultation fee
+- Clinic timings
+- WhatsApp notification preferences
+- Logout
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔑 Test Flow
+
+1. **Sign Up**: Create account with email/password
+2. **Login**: Sign in to dashboard
+3. **Add Appointment**: Click "Add New Appointment"
+4. **Add Walk-in**: Fill patient details
+5. **Check-in**: Click "Check-in" button
+6. **Start Consultation**: Update status
+7. **Complete**: Mark as complete
+8. **Settings**: Update clinic details
+
+## 📱 Pages
+
+- `/` → Redirects to login
+- `/login` → Email/password authentication
+- `/dashboard` → Main dashboard
+- `/appointments` → Queue management
+- `/settings` → Clinic settings
+
+## 🗄️ Database Tables
+
+- `clinics` - Clinic information
+- `users` - User accounts (linked to auth)
+- `appointments` - Patient appointments
+- `clinic_settings` - Clinic preferences
+
+## 🔐 Security
+
+- Row Level Security (RLS) enabled
+- Users can only see their clinic's data
+- Protected routes via middleware
+- Secure session management
+
+## 📞 Need Help?
+
+1. Check `SUPABASE_SETUP.md` for detailed setup
+2. Check browser console for errors
+3. Verify `.env.local` has correct values
+4. Check Supabase logs in dashboard
+
+## 🎉 You're Ready!
+
+Once Supabase is set up, you have a fully functional clinic management system ready to use!
