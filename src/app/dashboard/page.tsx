@@ -88,9 +88,14 @@ export default function DashboardPage() {
         if (userData) {
             setClinicId(userData.clinic_id)
             if (userData.clinics) {
-                setClinicStatus(userData.clinics.clinic_status as any)
-                setDoctorName(userData.clinics.doctor_name || 'Dr. Sharma')
-                setClinicName(userData.clinics.name || 'Sharma Clinic')
+                const clinic = Array.isArray(userData.clinics) ? userData.clinics[0] : userData.clinics
+                const clinicData = clinic as any
+
+                if (clinicData) {
+                    setClinicStatus(clinicData.clinic_status as any)
+                    setDoctorName(clinicData.doctor_name || 'Dr. Sharma')
+                    setClinicName(clinicData.name || 'Sharma Clinic')
+                }
             }
         }
     }
@@ -220,10 +225,10 @@ export default function DashboardPage() {
                                 key={status}
                                 onClick={() => updateClinicStatus(status as any)}
                                 className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${clinicStatus === status
-                                        ? status === 'available' ? 'bg-green-50 text-green-600 shadow-sm ring-1 ring-green-100'
-                                            : status === 'busy' ? 'bg-orange-50 text-orange-500 shadow-sm ring-1 ring-orange-100'
-                                                : 'bg-slate-100 text-slate-600 shadow-sm'
-                                        : 'text-slate-400 hover:bg-slate-50'
+                                    ? status === 'available' ? 'bg-green-50 text-green-600 shadow-sm ring-1 ring-green-100'
+                                        : status === 'busy' ? 'bg-orange-50 text-orange-500 shadow-sm ring-1 ring-orange-100'
+                                            : 'bg-slate-100 text-slate-600 shadow-sm'
+                                    : 'text-slate-400 hover:bg-slate-50'
                                     }`}
                             >
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -321,7 +326,7 @@ export default function DashboardPage() {
                                                 {appointment.patient_name.substring(0, 2).toUpperCase()}
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-bold text-slate-800">{appointment.patient_name}</h3>
+                                                <h3 className="text-m font-bold text-slate-800">{appointment.patient_name}</h3>
                                                 <p className="text-xs text-slate-400 font-medium mt-0.5">
                                                     {appointment.visit_reason || 'General Checkup'} • <span className="text-slate-500">{appointment.appointment_time}</span>
                                                 </p>
