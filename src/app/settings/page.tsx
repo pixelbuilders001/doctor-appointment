@@ -13,6 +13,7 @@ import { motion } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
     const router = useRouter()
@@ -512,47 +513,46 @@ export default function SettingsPage() {
                 </motion.div>
             </div>
 
-            {/* Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-50 px-6 py-3 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
-                <div className="flex justify-between items-center max-w-md mx-auto relative">
+            {/* Modern Bottom Navigation */}
+            <nav className="fixed bottom-6 left-6 right-6 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.08)] z-50">
+                <div className="flex justify-around items-center h-full px-4 max-w-md mx-auto">
                     <button
                         onClick={() => router.push('/dashboard')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" /><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" /></svg>
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Dashboard</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Home</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <Calendar className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Schedule</span>
-                    </button>
-
-                    <button
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-300 pointer-events-none"
-                    >
-                        <div className="h-6 w-6 rounded-full border-2 border-slate-200"></div>
-                        <span className="text-[10px] font-bold">Patients</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Schedule</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-blue-600 transition-colors"
+                        className="flex flex-col items-center justify-center gap-1 group relative"
                     >
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className="bg-blue-50 p-2.5 rounded-xl text-blue-600"
-                        >
-                            <Settings className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-[10px] font-bold">Settings</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-blue-100",
+                            "bg-blue-600 text-white"
+                        )}>
+                            <Settings className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black text-blue-600">Settings</span>
                     </button>
                 </div>
             </nav>

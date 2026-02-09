@@ -24,6 +24,7 @@ interface Appointment {
     status: string
     visit_reason?: string
     booking_source?: string
+    payment_status?: 'pending' | 'paid'
 }
 
 interface DashboardData {
@@ -150,7 +151,8 @@ export default function DashboardPage() {
                     appointment_time: a.appointment_time || 'Walk-in',
                     status: a.status,
                     visit_reason: a.visit_reason,
-                    booking_source: a.booking_source
+                    booking_source: a.booking_source,
+                    payment_status: a.payment_status
                 })) || []
 
             setDashboardData({
@@ -202,6 +204,25 @@ export default function DashboardPage() {
 
             if (error) {
                 console.error('Error updating appointment:', error)
+            } else {
+                fetchDashboardData()
+            }
+        } catch (error) {
+            console.error('Error:', error)
+        } finally {
+            setUpdatingId(null)
+        }
+    }
+    const updatePaymentStatus = async (appointmentId: string, newStatus: string) => {
+        setUpdatingId(appointmentId)
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ payment_status: newStatus })
+                .eq('id', appointmentId)
+
+            if (error) {
+                console.error('Error updating payment status:', error)
             } else {
                 fetchDashboardData()
             }
@@ -354,52 +375,76 @@ export default function DashboardPage() {
                                         exit={{ opacity: 0, x: 20 }}
                                         layout
                                         key={appointment.id}
-                                        className="bg-white p-4 rounded-3xl shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-slate-50 flex items-center justify-between"
+                                        className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden active:scale-[0.99] transition-transform"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 ${appointment.status === 'ongoing' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-                                                }`}>
-                                                {appointment.patient_name.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-m font-bold text-slate-800 flex items-center gap-2">
-                                                    {appointment.patient_name}
-                                                    {appointment.booking_source === 'online' && (
-                                                        <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                            <Globe className="w-3 h-3" /> Online
-                                                        </span>
-                                                    )}
-                                                </h3>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <div className="bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                                                        {appointment.appointment_type || 'New'}
+                                        <div className={cn(
+                                            "absolute top-0 left-0 w-1 h-full",
+                                            appointment.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
+                                        )} />
+
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-black border-2",
+                                                    appointment.status === 'ongoing' ? 'bg-orange-50 text-orange-500 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                                                )}>
+                                                    {appointment.patient_name.substring(0, 1).toUpperCase()}
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                                                        {appointment.patient_name}
+                                                        {appointment.booking_source === 'online' && (
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                                        )}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
+                                                            T-{String(appointment.token_number).padStart(2, '0')}
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400 font-bold">
+                                                            {appointment.patient_age}Y • {appointment.appointment_type || 'New'}
+                                                        </p>
                                                     </div>
-                                                    <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
-                                                        {appointment.patient_age || '??'}y • {appointment.patient_gender || '?'} • {appointment.address || 'No Address'}
-                                                    </p>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {appointment.status === 'ongoing' ? (
-                                            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-200">
-                                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                </svg>
+                                            <div className="flex items-center gap-2">
+                                                {appointment.payment_status !== 'paid' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => updatePaymentStatus(appointment.id, 'paid')}
+                                                        className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9"
+                                                        disabled={updatingId === appointment.id}
+                                                    >
+                                                        {updatingId === appointment.id ? '...' : 'PAID'}
+                                                    </Button>
+                                                )}
+
+                                                {appointment.status === 'ongoing' ? (
+                                                    <div className="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-100">
+                                                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        size="icon"
+                                                        onClick={() => updateAppointmentStatus(appointment.id, 'ongoing')}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl w-9 h-9 shadow-lg shadow-blue-100 transition-all active:scale-90"
+                                                        disabled={updatingId === appointment.id}
+                                                    >
+                                                        {updatingId === appointment.id ? (
+                                                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        ) : (
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </Button>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <Button
-                                                size="sm"
-                                                onClick={() => updateAppointmentStatus(appointment.id, 'ongoing')}
-                                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl px-4 font-bold text-xs h-9 transition-colors flex items-center gap-2"
-                                                disabled={updatingId === appointment.id}
-                                            >
-                                                {updatingId === appointment.id ? (
-                                                    <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" />
-                                                ) : null}
-                                                {updatingId === appointment.id ? '...' : 'Check In'}
-                                            </Button>
-                                        )}
+                                        </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
@@ -441,46 +486,45 @@ export default function DashboardPage() {
             </div>
 
             {/* Modern Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-50 px-6 py-3 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
-                <div className="flex justify-between items-center max-w-md mx-auto relative">
+            <nav className="fixed bottom-6 left-6 right-6 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.08)] z-50">
+                <div className="flex justify-around items-center h-full px-4 max-w-md mx-auto">
                     <button
                         onClick={() => router.push('/dashboard')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-blue-600 transition-colors"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className="bg-blue-50 p-2.5 rounded-xl text-blue-600"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" /><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" /></svg>
-                        </motion.div>
-                        <span className="text-[10px] font-bold">Dashboard</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-blue-100",
+                            "bg-blue-600 text-white"
+                        )}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black text-blue-600">Home</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Schedule</span>
-                    </button>
-
-                    <button
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-300 pointer-events-none"
-                    >
-                        <div className="h-6 w-6 rounded-full border-2 border-slate-200"></div>
-                        <span className="text-[10px] font-bold">Patients</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Schedule</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Settings</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="10" cy="10" r="3" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Settings</span>
                     </button>
                 </div>
             </nav>

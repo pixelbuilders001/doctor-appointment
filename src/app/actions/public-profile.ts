@@ -114,7 +114,8 @@ export async function createPublicAppointment(data: AppointmentInput): Promise<A
             booking_source: 'online',
             status: 'confirmed',
             appointment_type: appointment_type, // Use selected type
-            appointment_time: null
+            appointment_time: null,
+            payment_status: 'pending'
         })
 
     if (insertError) {

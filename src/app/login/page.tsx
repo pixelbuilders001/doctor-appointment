@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Lock, Eye, EyeOff, Building } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -19,6 +20,7 @@ export default function LoginPage() {
     const [isSignUp, setIsSignUp] = useState(false)
     const router = useRouter()
     const supabase = createClient()
+    const { toast } = useToast()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -90,7 +92,10 @@ export default function LoginPage() {
                         }
                     }
 
-                    alert('Account created successfully! Please login.')
+                    toast({
+                        title: "Account Created",
+                        description: "Your account has been created successfully! Please login.",
+                    })
                     setIsSignUp(false)
                     setEmail('')
                     setPassword('')

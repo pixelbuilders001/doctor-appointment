@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ClinicData } from '@/app/actions/public-profile'
 import { useRouter } from 'next/navigation'
 import PageTransition from '@/components/PageTransition'
+import { useToast } from '@/hooks/use-toast'
 
 interface Props {
     clinic: ClinicData
@@ -15,6 +16,7 @@ interface Props {
 
 export default function PublicProfileClient({ clinic, slug }: Props) {
     const router = useRouter()
+    const { toast } = useToast()
     const { clinic_settings } = clinic
 
     // Extract Lat/Long from Google Maps URL if possible
@@ -71,7 +73,10 @@ export default function PublicProfileClient({ clinic, slug }: Props) {
             }
         } else {
             navigator.clipboard.writeText(window.location.href)
-            alert('Link copied to clipboard!')
+            toast({
+                title: "Link Copied",
+                description: "Clinic profile link copied to clipboard!",
+            })
         }
     }
 

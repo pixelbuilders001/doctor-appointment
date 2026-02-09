@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, Bell, ChevronRight, Filter, Calendar, Settings } from 'lucide-react'
+import { Plus, Search, Bell, ChevronRight, Filter, Calendar, Settings, Phone, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface Appointment {
     id: string
@@ -28,6 +30,7 @@ interface Appointment {
     visit_reason?: string
     status: string
     appointment_type: string
+    payment_status?: 'pending' | 'paid'
 }
 
 export default function AppointmentsPage() {
@@ -42,6 +45,9 @@ export default function AppointmentsPage() {
     const [showAddDialog, setShowAddDialog] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
     const [updatingId, setUpdatingId] = useState<string | null>(null)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [appointmentToDelete, setAppointmentToDelete] = useState<string | null>(null)
+    const { toast } = useToast()
 
     const [newAppointment, setNewAppointment] = useState({
         patient_name: '',
@@ -187,7 +193,11 @@ export default function AppointmentsPage() {
 
             if (tokenError) {
                 console.error('Error getting token:', tokenError)
-                alert('Failed to generate token number')
+                toast({
+                    title: "Error",
+                    description: "Failed to generate token number.",
+                    variant: "destructive"
+                })
                 return
             }
 
@@ -203,13 +213,23 @@ export default function AppointmentsPage() {
                 appointment_type: newAppointment.appointment_type,
                 status: 'confirmed',
                 booking_source: 'manual',
+                payment_status: 'pending',
             })
 
             if (error) {
                 console.error('Error creating appointment:', error)
-                alert('Failed to create appointment')
+                toast({
+                    title: "Error",
+                    description: "Failed to create appointment.",
+                    variant: "destructive"
+                })
                 return
             }
+
+            toast({
+                title: "Success",
+                description: "Appointment created successfully!",
+            })
 
             setShowAddDialog(false)
             setNewAppointment({
@@ -227,7 +247,11 @@ export default function AppointmentsPage() {
             }
         } catch (error) {
             console.error('Error:', error)
-            alert('Failed to create appointment')
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred.",
+                variant: "destructive"
+            })
         } finally {
             setIsAdding(false)
         }
@@ -259,6 +283,62 @@ export default function AppointmentsPage() {
             console.error('Error:', error)
         } finally {
             setUpdatingId(null)
+        }
+    }
+
+    const updatePaymentStatus = async (appointmentId: string, newStatus: string) => {
+        setUpdatingId(appointmentId)
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .update({ payment_status: newStatus })
+                .eq('id', appointmentId)
+
+            if (error) {
+                console.error('Error updating payment status:', error)
+            } else {
+                fetchAppointments()
+            }
+        } catch (error) {
+            console.error('Error:', error)
+        } finally {
+            setUpdatingId(null)
+        }
+    }
+
+    const deleteAppointment = async (appointmentId: string) => {
+        setUpdatingId(appointmentId)
+        try {
+            const { error } = await supabase
+                .from('appointments')
+                .delete()
+                .eq('id', appointmentId)
+
+            if (error) {
+                console.error('Error deleting appointment:', error)
+                toast({
+                    title: "Error",
+                    description: "Failed to delete appointment.",
+                    variant: "destructive"
+                })
+            } else {
+                toast({
+                    title: "Deleted",
+                    description: "Appointment has been removed.",
+                })
+                fetchAppointments()
+            }
+        } catch (error) {
+            console.error('Error:', error)
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred.",
+                variant: "destructive"
+            })
+        } finally {
+            setUpdatingId(null)
+            setIsDeleteDialogOpen(false)
+            setAppointmentToDelete(null)
         }
     }
 
@@ -343,84 +423,129 @@ export default function AppointmentsPage() {
                                 transition={{ delay: index * 0.05 }}
                                 layout
                                 key={app.id}
-                                className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 relative overflow-hidden group"
+                                className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden group active:scale-[0.99] transition-transform"
                             >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex gap-4">
+                                {/* Background Accent */}
+                                <div className={cn(
+                                    "absolute top-0 left-0 w-1 h-full",
+                                    app.status === 'completed' ? 'bg-green-500' :
+                                        app.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
+                                )} />
+
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="flex gap-3">
                                         {/* Token Badge */}
-                                        <div className={`
-                                        flex flex-col items-center justify-center w-14 h-16 rounded-2xl text-white shadow-lg
-                                        ${app.status === 'completed' ? 'bg-green-500 shadow-green-200' :
-                                                app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-200' :
-                                                    'bg-blue-500 shadow-blue-200'}
-                                    `}>
-                                            <span className="text-[9px] font-bold opacity-80 uppercase">Token</span>
-                                            <span className="text-2xl font-bold leading-none">{String(app.token_number).padStart(2, '0')}</span>
+                                        <div className={cn(
+                                            "flex flex-col items-center justify-center w-12 h-14 rounded-2xl text-white shadow-lg shrink-0",
+                                            app.status === 'completed' ? 'bg-green-500 shadow-green-100' :
+                                                app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-100' :
+                                                    'bg-blue-500 shadow-blue-100'
+                                        )}>
+                                            <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">Token</span>
+                                            <span className="text-xl font-black leading-none">{String(app.token_number).padStart(2, '0')}</span>
                                         </div>
 
-                                        <div>
-                                            <h3 className="text-lg font-bold text-slate-800">{app.patient_name}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <div className="flex items-center gap-1.5 text-blue-600 text-[10px] font-bold bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-base font-black text-slate-800 tracking-tight">{app.patient_name}</h3>
+                                                <Badge className={cn(
+                                                    "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border-0",
+                                                    app.payment_status === 'paid' ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : 'bg-amber-100 text-amber-700'
+                                                )}>
+                                                    {app.payment_status || 'pending'}
+                                                </Badge>
+                                            </div>
+
+                                            {/* Patient Details Grid */}
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                <div className="flex items-center gap-1.5 text-slate-500">
+                                                    <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
+                                                        {app.patient_age}Y • {app.patient_gender?.charAt(0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                                                     {app.appointment_type || 'New'}
                                                 </div>
-                                                <span className="text-slate-300">•</span>
-                                                <span className="text-slate-500 text-xs font-medium">
-                                                    {app.patient_age}y • {app.patient_gender} • {app.address || app.patient_address || 'No Address'}
-                                                </span>
+                                                <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                                    <Phone className="w-2.5 h-2.5" />
+                                                    <span>{app.patient_mobile}</span>
+                                                </div>
+                                                <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400 truncate max-w-[180px]">
+                                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                    <span className="truncate">{app.address || app.patient_address || 'No Address'}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Status Badge */}
-                                    <Badge className={`
-                                    px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border-0 shadow-none
-                                    ${app.status === 'confirmed' ? 'bg-blue-50 text-blue-600' : ''}
-                                    ${app.status === 'ongoing' ? 'bg-orange-50 text-orange-600' : ''}
-                                    ${app.status === 'completed' ? 'bg-green-50 text-green-600' : ''}
-                                    ${app.status === 'cancelled' ? 'bg-slate-50 text-slate-500' : ''}
-                                `}>
-                                        {app.status.replace('_', ' ')}
-                                    </Badge>
+                                    {/* Top Right Status */}
+                                    <div className={cn(
+                                        "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                                        app.status === 'confirmed' ? 'bg-blue-50 text-blue-600' :
+                                            app.status === 'ongoing' ? 'bg-orange-50 text-orange-600' :
+                                                app.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
+                                    )}>
+                                        {app.status}
+                                    </div>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="flex gap-3 mt-2">
+                                {/* Divider */}
+                                <div className="h-px bg-slate-50 my-4" />
+
+                                {/* Actions Container */}
+                                <div className="flex gap-2">
                                     {app.status === 'confirmed' && (
                                         <Button
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 rounded-xl shadow-md shadow-blue-100 transition-transform active:scale-95 disabled:opacity-70"
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-70"
                                             onClick={() => updateAppointmentStatus(app.id, 'ongoing')}
                                             disabled={updatingId === app.id}
                                         >
-                                            {updatingId === app.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    <span>Processing...</span>
-                                                </div>
-                                            ) : 'Check-in'}
+                                            {updatingId === app.id ? '...' : 'Check-in'}
                                         </Button>
                                     )}
 
                                     {app.status === 'ongoing' && (
                                         <Button
-                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold h-11 rounded-xl shadow-md shadow-green-100 transition-transform active:scale-95 disabled:opacity-70"
+                                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-70"
                                             onClick={() => updateAppointmentStatus(app.id, 'completed')}
                                             disabled={updatingId === app.id}
                                         >
-                                            {updatingId === app.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    <span>Processing...</span>
-                                                </div>
-                                            ) : 'Complete'}
+                                            {updatingId === app.id ? '...' : 'Complete'}
                                         </Button>
                                     )}
 
-                                    <Button variant="outline" className="flex-1 h-11 rounded-xl border-slate-100 font-bold text-slate-500 hover:bg-slate-50">
-                                        Details
-                                    </Button>
-                                </div>
+                                    {app.payment_status !== 'paid' && (
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
+                                            onClick={() => updatePaymentStatus(app.id, 'paid')}
+                                            disabled={updatingId === app.id}
+                                        >
+                                            Mark Paid
+                                        </Button>
+                                    )}
 
+                                    {/* Action Icons */}
+                                    <div className="flex gap-1">
+                                        {app.payment_status !== 'paid' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
+                                                onClick={() => {
+                                                    setAppointmentToDelete(app.id)
+                                                    setIsDeleteDialogOpen(true)
+                                                }}
+                                                disabled={updatingId === app.id}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </motion.div>
                         ))}
                     </AnimatePresence>
@@ -428,6 +553,39 @@ export default function AppointmentsPage() {
             </div>
 
             {/* FAB */}
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="max-w-[320px] rounded-3xl p-6 border-0 shadow-2xl">
+                    <div className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+                            <AlertCircle className="w-8 h-8 text-red-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-black text-slate-800">Delete Appointment?</h3>
+                            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                Are you sure you want to remove this appointment? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div className="flex gap-3 w-full pt-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-12 rounded-xl border-slate-100 font-bold text-slate-500"
+                                onClick={() => setIsDeleteDialogOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 font-bold shadow-lg shadow-red-100"
+                                onClick={() => appointmentToDelete && deleteAppointment(appointmentToDelete)}
+                                disabled={updatingId === appointmentToDelete}
+                            >
+                                {updatingId === appointmentToDelete ? '...' : 'Delete'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogTrigger asChild>
                     <motion.div
@@ -590,47 +748,46 @@ export default function AppointmentsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-50 px-6 py-3 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
-                <div className="flex justify-between items-center max-w-md mx-auto relative">
+            {/* Modern Bottom Navigation */}
+            <nav className="fixed bottom-6 left-6 right-6 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.08)] z-50">
+                <div className="flex justify-around items-center h-full px-4 max-w-md mx-auto">
                     <button
                         onClick={() => router.push('/dashboard')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" /><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" /></svg>
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Dashboard</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Home</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-blue-600 transition-colors"
+                        className="flex flex-col items-center justify-center gap-1 group relative"
                     >
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className="bg-blue-50 p-2.5 rounded-xl text-blue-600"
-                        >
-                            <Calendar className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-[10px] font-bold">Schedule</span>
-                    </button>
-
-                    <button
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-300 pointer-events-none"
-                    >
-                        <div className="h-6 w-6 rounded-full border-2 border-slate-200"></div>
-                        <span className="text-[10px] font-bold">Patients</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-blue-100",
+                            "bg-blue-600 text-white"
+                        )}>
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black text-blue-600">Schedule</span>
                     </button>
 
                     <button
                         onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center gap-1.5 p-2 text-slate-400 hover:text-slate-600 transition-colors group"
+                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
                     >
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                            <Settings className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-[10px] font-bold group-hover:text-slate-600">Settings</span>
+                        <div className={cn(
+                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        )}>
+                            <Settings className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Settings</span>
                     </button>
                 </div>
             </nav>
