@@ -16,7 +16,11 @@ interface Appointment {
     id: string
     token_number: number
     patient_name: string
+    patient_age?: number
+    patient_gender?: string
+    address?: string
     appointment_time: string
+    appointment_type?: string
     status: string
     visit_reason?: string
     booking_source?: string
@@ -347,9 +351,14 @@ export default function DashboardPage() {
                                                         </span>
                                                     )}
                                                 </h3>
-                                                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                                                    {appointment.visit_reason || 'General Checkup'} • <span className="text-slate-500">{appointment.appointment_time}</span>
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="bg-blue-50 text-blue-600 text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                                                        {appointment.appointment_type || 'New'}
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                                                        {appointment.patient_age || '??'}y • {appointment.patient_gender || '?'} • {appointment.address || 'No Address'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 

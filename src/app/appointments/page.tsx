@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
+import { cn } from '@/lib/utils'
 
 interface Appointment {
     id: string
@@ -21,7 +22,9 @@ interface Appointment {
     patient_mobile: string
     patient_age?: number
     patient_gender?: string
+    patient_address?: string
     appointment_time?: string
+    address?: string
     visit_reason?: string
     status: string
     appointment_type: string
@@ -42,9 +45,11 @@ export default function AppointmentsPage() {
         patient_name: '',
         patient_mobile: '',
         patient_age: '',
-        patient_gender: 'M',
-        visit_reason: '',
+        patient_gender: 'Male',
+        patient_address: '',
+        appointment_type: 'New',
     })
+    const [errors, setErrors] = useState<Record<string, string>>({})
 
     useEffect(() => {
         checkAuth()
@@ -138,9 +143,32 @@ export default function AppointmentsPage() {
         }
     }
 
+    const validateNewAppointment = () => {
+        const newErrors: Record<string, string> = {}
+        if (!newAppointment.patient_name.trim()) newErrors.patient_name = 'Name is required'
+        else if (newAppointment.patient_name.length < 2) newErrors.patient_name = 'Name must be at least 2 characters'
+
+        if (!newAppointment.patient_mobile.trim()) newErrors.patient_mobile = 'Mobile number is required'
+        else if (!/^[6-9]\d{9}$/.test(newAppointment.patient_mobile)) newErrors.patient_mobile = 'Enter a valid 10-digit Indian mobile number'
+
+        if (!newAppointment.patient_age) newErrors.patient_age = 'Age is required'
+        else if (parseInt(newAppointment.patient_age) < 1 || parseInt(newAppointment.patient_age) > 120) newErrors.patient_age = 'Enter a valid age (1-120)'
+
+        if (!newAppointment.patient_gender) newErrors.patient_gender = 'Gender is required'
+
+        if (!newAppointment.patient_address.trim()) newErrors.patient_address = 'Address is required'
+        else if (newAppointment.patient_address.length < 5) newErrors.patient_address = 'Please enter a more descriptive address'
+
+        if (!newAppointment.appointment_type) newErrors.appointment_type = 'Select appointment type'
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
+
     const handleAddAppointment = async () => {
-        if (!clinicId || !newAppointment.patient_name || !newAppointment.patient_mobile) {
-            alert('Please fill in required fields')
+        if (!clinicId) return
+
+        if (!validateNewAppointment()) {
             return
         }
 
@@ -164,11 +192,12 @@ export default function AppointmentsPage() {
                 patient_mobile: newAppointment.patient_mobile,
                 patient_age: newAppointment.patient_age ? parseInt(newAppointment.patient_age) : null,
                 patient_gender: newAppointment.patient_gender,
-                visit_reason: newAppointment.visit_reason,
+                address: newAppointment.patient_address,
                 appointment_date: dateStr,
                 token_number: tokenData,
-                appointment_type: 'walkin',
+                appointment_type: newAppointment.appointment_type,
                 status: 'booked',
+                booking_source: 'manual',
             })
 
             if (error) {
@@ -182,8 +211,9 @@ export default function AppointmentsPage() {
                 patient_name: '',
                 patient_mobile: '',
                 patient_age: '',
-                patient_gender: 'M',
-                visit_reason: '',
+                patient_gender: 'Male',
+                patient_address: '',
+                appointment_type: 'New',
             })
             // Fetch will happen via realtime
         } catch (error) {
@@ -337,12 +367,13 @@ export default function AppointmentsPage() {
                                             <div>
                                                 <h3 className="text-lg font-bold text-slate-800">{app.patient_name}</h3>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold bg-slate-50 px-2 py-1 rounded-md">
-                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        {app.appointment_time || 'Walk-in'}
+                                                    <div className="flex items-center gap-1.5 text-blue-600 text-[10px] font-bold bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                        {app.appointment_type || 'New'}
                                                     </div>
                                                     <span className="text-slate-300">•</span>
-                                                    <span className="text-slate-500 text-xs font-medium">{app.visit_reason || 'Checkup'}</span>
+                                                    <span className="text-slate-500 text-xs font-medium">
+                                                        {app.patient_age}y • {app.patient_gender} • {app.address || app.patient_address || 'No Address'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -417,20 +448,51 @@ export default function AppointmentsPage() {
                             <Label className="text-xs font-bold text-slate-500 uppercase">Patient Name</Label>
                             <Input
                                 value={newAppointment.patient_name}
-                                onChange={(e) => setNewAppointment({ ...newAppointment, patient_name: e.target.value })}
-                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                onChange={(e) => {
+                                    setNewAppointment({ ...newAppointment, patient_name: e.target.value })
+                                    if (errors.patient_name) setErrors({ ...errors, patient_name: '' })
+                                }}
+                                className={cn(
+                                    "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
+                                    errors.patient_name && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                )}
                                 placeholder="Ex. Rajesh Kumar"
                             />
+                            {errors.patient_name && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_name}</p>}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-500 uppercase">Address (Short)</Label>
+                            <Input
+                                value={newAppointment.patient_address}
+                                onChange={(e) => {
+                                    setNewAppointment({ ...newAppointment, patient_address: e.target.value })
+                                    if (errors.patient_address) setErrors({ ...errors, patient_address: '' })
+                                }}
+                                className={cn(
+                                    "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
+                                    errors.patient_address && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                )}
+                                placeholder="Ex. Sector 44, Gurgaon"
+                            />
+                            {errors.patient_address && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_address}</p>}
                         </div>
                         <div className="space-y-1.5">
                             <Label className="text-xs font-bold text-slate-500 uppercase">Mobile Number</Label>
                             <Input
                                 value={newAppointment.patient_mobile}
-                                onChange={(e) => setNewAppointment({ ...newAppointment, patient_mobile: e.target.value })}
-                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                                    setNewAppointment({ ...newAppointment, patient_mobile: val })
+                                    if (errors.patient_mobile) setErrors({ ...errors, patient_mobile: '' })
+                                }}
+                                className={cn(
+                                    "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
+                                    errors.patient_mobile && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                )}
                                 placeholder="10-digit number"
                                 maxLength={10}
                             />
+                            {errors.patient_mobile && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_mobile}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
@@ -438,33 +500,58 @@ export default function AppointmentsPage() {
                                 <Input
                                     type="number"
                                     value={newAppointment.patient_age}
-                                    onChange={(e) => setNewAppointment({ ...newAppointment, patient_age: e.target.value })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                    onChange={(e) => {
+                                        setNewAppointment({ ...newAppointment, patient_age: e.target.value })
+                                        if (errors.patient_age) setErrors({ ...errors, patient_age: '' })
+                                    }}
+                                    className={cn(
+                                        "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
+                                        errors.patient_age && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                    )}
                                     placeholder="Age"
                                 />
+                                {errors.patient_age && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_age}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs font-bold text-slate-500 uppercase">Gender</Label>
                                 <select
                                     value={newAppointment.patient_gender}
-                                    onChange={(e) => setNewAppointment({ ...newAppointment, patient_gender: e.target.value })}
-                                    className="w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                    onChange={(e) => {
+                                        setNewAppointment({ ...newAppointment, patient_gender: e.target.value })
+                                        if (errors.patient_gender) setErrors({ ...errors, patient_gender: '' })
+                                    }}
+                                    className={cn(
+                                        "w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 outline-none",
+                                        errors.patient_gender && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                    )}
                                 >
-                                    <option value="M">Male</option>
-                                    <option value="F">Female</option>
-                                    <option value="O">Other</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
                                 </select>
+                                {errors.patient_gender && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_gender}</p>}
                             </div>
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Reason</Label>
-                            <Textarea
-                                value={newAppointment.visit_reason}
-                                onChange={(e) => setNewAppointment({ ...newAppointment, visit_reason: e.target.value })}
-                                className="bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
-                                placeholder="Checkup, Fever, etc."
-                                rows={2}
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Appointment Type</Label>
+                                <select
+                                    value={newAppointment.appointment_type}
+                                    onChange={(e) => {
+                                        setNewAppointment({ ...newAppointment, appointment_type: e.target.value })
+                                        if (errors.appointment_type) setErrors({ ...errors, appointment_type: '' })
+                                    }}
+                                    className={cn(
+                                        "w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 appearance-none outline-none",
+                                        errors.appointment_type && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
+                                    )}
+                                >
+                                    <option value="New">New Consultation</option>
+                                    <option value="Follow-up">Follow-up</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                {errors.appointment_type && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.appointment_type}</p>}
+                            </div>
                         </div>
                         <Button
                             className="w-full h-14 bg-blue-600 text-white font-bold rounded-xl mt-4 shadow-lg shadow-blue-200 hover:bg-blue-700"

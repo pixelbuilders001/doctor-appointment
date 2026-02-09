@@ -11,6 +11,8 @@ export type ClinicData = {
     address: string | null
     mobile: string | null
     maps_link: string | null
+    clinic_banner: string | null
+    clinic_owner: string | null
     clinic_settings: {
         morning_start: string | null
         morning_end: string | null
@@ -23,9 +25,17 @@ export type AppointmentInput = {
     slug: string
     patient_name: string
     patient_mobile: string
+    patient_age: number
+    patient_gender: string
+    patient_address: string
     appointment_date: string // YYYY-MM-DD
-    appointment_time: string // HH:mm
-    visit_reason?: string
+    appointment_type: string
+}
+
+export type AppointmentResponse = {
+    success: boolean
+    message?: string
+    token_number?: number
 }
 
 export async function getClinicBySlug(slug: string): Promise<ClinicData | null> {
@@ -41,6 +51,8 @@ export async function getClinicBySlug(slug: string): Promise<ClinicData | null> 
       address,
       mobile,
       maps_link,
+      clinic_banner,
+      clinic_owner,
       clinic_settings (
         morning_start,
         morning_end,
@@ -56,7 +68,6 @@ export async function getClinicBySlug(slug: string): Promise<ClinicData | null> 
         return null
     }
 
-    // Handle array or object return for relation
     const settings = Array.isArray(clinic.clinic_settings)
         ? clinic.clinic_settings[0]
         : clinic.clinic_settings
@@ -67,9 +78,9 @@ export async function getClinicBySlug(slug: string): Promise<ClinicData | null> 
     }
 }
 
-export async function createPublicAppointment(data: AppointmentInput) {
+export async function createPublicAppointment(data: AppointmentInput): Promise<AppointmentResponse> {
     const supabase = await createClient()
-    const { slug, patient_name, patient_mobile, appointment_date, appointment_time, visit_reason } = data
+    const { slug, patient_name, patient_mobile, patient_age, patient_gender, patient_address, appointment_date, appointment_type } = data
 
     // 1. Get Clinic ID
     const clinic = await getClinicBySlug(slug)
@@ -88,20 +99,22 @@ export async function createPublicAppointment(data: AppointmentInput) {
         return { success: false, message: 'Failed to generate token' }
     }
 
-    // 3. Create Appointment
+    // 3. Create Appointment 
     const { error: insertError } = await supabase
         .from('appointments')
         .insert({
             clinic_id: clinic.id,
             patient_name,
             patient_mobile,
+            patient_age,
+            patient_gender,
+            address: patient_address,
             appointment_date,
-            appointment_time,
-            visit_reason,
             token_number: tokenNumber,
-            booking_source: 'online', // Ensure this matches migration default/check
-            status: 'confirmed', // As requested: CONFIRMED
-            appointment_type: 'scheduled'
+            booking_source: 'online',
+            status: 'confirmed',
+            appointment_type: appointment_type, // Use selected type
+            appointment_time: null
         })
 
     if (insertError) {
@@ -109,5 +122,5 @@ export async function createPublicAppointment(data: AppointmentInput) {
         return { success: false, message: 'Failed to book appointment' }
     }
 
-    return { success: true }
+    return { success: true, token_number: tokenNumber }
 }

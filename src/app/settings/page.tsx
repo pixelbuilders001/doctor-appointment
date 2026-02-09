@@ -29,6 +29,8 @@ export default function SettingsPage() {
         address: '',
         consultation_fee: 500,
         slot_duration: 15,
+        clinic_banner: '',
+        clinic_owner: '',
     })
 
     const [settingsData, setSettingsData] = useState({
@@ -77,6 +79,8 @@ export default function SettingsPage() {
                     address: clinic.address || '',
                     consultation_fee: clinic.consultation_fee || 500,
                     slot_duration: clinic.slot_duration || 15,
+                    clinic_banner: clinic.clinic_banner || '',
+                    clinic_owner: clinic.clinic_owner || '',
                 })
             }
 
@@ -103,6 +107,22 @@ export default function SettingsPage() {
         }
     }
 
+    const uploadImage = async (file: File, path: string) => {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${clinicId}/${path}-${Date.now()}.${fileExt}`
+        const { data, error } = await supabase.storage
+            .from('clinic-image')
+            .upload(fileName, file)
+
+        if (error) throw error
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('clinic-image')
+            .getPublicUrl(fileName)
+
+        return publicUrl
+    }
+
     const handleSave = async () => {
         if (!clinicId) return
         setSaving(true)
@@ -116,6 +136,8 @@ export default function SettingsPage() {
                     address: clinicData.address,
                     consultation_fee: clinicData.consultation_fee,
                     slot_duration: clinicData.slot_duration,
+                    clinic_banner: clinicData.clinic_banner,
+                    clinic_owner: clinicData.clinic_owner,
                 })
                 .eq('id', clinicId)
 
@@ -214,6 +236,103 @@ export default function SettingsPage() {
                                 onChange={(e) => setClinicData({ ...clinicData, address: e.target.value })}
                                 className="bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 min-h-[80px]"
                             />
+                        </div>
+
+                        {/* Visuals */}
+                        <div className="grid grid-cols-1 gap-5 pt-2">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Clinic Banner Image</Label>
+                                <div className="flex flex-col gap-3">
+                                    <div
+                                        onClick={() => document.getElementById('banner-upload')?.click()}
+                                        className="h-32 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-center items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors overflow-hidden relative"
+                                    >
+                                        {clinicData.clinic_banner ? (
+                                            <img src={clinicData.clinic_banner} alt="Banner" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                <Building className="w-8 h-8" />
+                                                <span className="text-xs font-bold uppercase tracking-wider">Upload Banner</span>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
+                                            <div className="bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Save className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input
+                                        id="banner-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                                try {
+                                                    setSaving(true)
+                                                    const url = await uploadImage(file, 'banner')
+                                                    setClinicData({ ...clinicData, clinic_banner: url })
+                                                    toast({ title: "Banner Uploaded", description: "Refresh or save to keep changes." })
+                                                } catch (err) {
+                                                    toast({ title: "Upload Failed", variant: "destructive" })
+                                                } finally {
+                                                    setSaving(false)
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-[10px] text-slate-400 font-medium">Recommended: 1600x400 landscape image</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Doctor/Owner Profile Image</Label>
+                                <div className="flex items-center gap-6">
+                                    <div
+                                        onClick={() => document.getElementById('owner-upload')?.click()}
+                                        className="h-24 w-24 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors overflow-hidden relative shrink-0"
+                                    >
+                                        {clinicData.clinic_owner ? (
+                                            <img src={clinicData.clinic_owner} alt="Owner" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-8 h-8 text-slate-300" />
+                                        )}
+                                    </div>
+                                    <div className="space-y-1.5 flex-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-10 rounded-xl px-4 font-bold text-slate-600 border-slate-200"
+                                            onClick={() => document.getElementById('owner-upload')?.click()}
+                                        >
+                                            Change Photo
+                                        </Button>
+                                        <p className="text-[10px] text-slate-400 font-medium">Recommended: Square image (800x800)</p>
+                                    </div>
+                                    <input
+                                        id="owner-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                                try {
+                                                    setSaving(true)
+                                                    const url = await uploadImage(file, 'owner')
+                                                    setClinicData({ ...clinicData, clinic_owner: url })
+                                                    toast({ title: "Photo Uploaded" })
+                                                } catch (err) {
+                                                    toast({ title: "Upload Failed", variant: "destructive" })
+                                                } finally {
+                                                    setSaving(false)
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </motion.section>
