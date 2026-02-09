@@ -44,6 +44,8 @@ export default function DashboardPage() {
         nextAppointments: [],
     })
     const [loading, setLoading] = useState(true)
+    const [updatingId, setUpdatingId] = useState<string | null>(null)
+    const [isStatusLoading, setIsStatusLoading] = useState(false)
     const [clinicId, setClinicId] = useState<string | null>(null)
     const [doctorName, setDoctorName] = useState('Dr. Sharma')
     const [clinicName, setClinicName] = useState('Sharma Clinic')
@@ -166,6 +168,8 @@ export default function DashboardPage() {
 
     const updateClinicStatus = async (newStatus: 'available' | 'busy' | 'closed') => {
         if (!clinicId) return
+        setIsStatusLoading(true)
+        const oldStatus = clinicStatus
         setClinicStatus(newStatus)
 
         const { error } = await supabase
@@ -175,25 +179,36 @@ export default function DashboardPage() {
 
         if (error) {
             console.error('Error updating status:', error)
+            setClinicStatus(oldStatus) // Rollback
         }
+        setIsStatusLoading(false)
     }
 
     const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
-        const updates: any = { status: newStatus }
+        setUpdatingId(appointmentId)
+        try {
+            const updates: any = { status: newStatus }
 
-        if (newStatus === 'checked_in') {
-            updates.checked_in_at = new Date().toISOString()
-        } else if (newStatus === 'completed') {
-            updates.completed_at = new Date().toISOString()
-        }
+            if (newStatus === 'ongoing') {
+                updates.checked_in_at = new Date().toISOString()
+            } else if (newStatus === 'completed') {
+                updates.completed_at = new Date().toISOString()
+            }
 
-        const { error } = await supabase
-            .from('appointments')
-            .update(updates)
-            .eq('id', appointmentId)
+            const { error } = await supabase
+                .from('appointments')
+                .update(updates)
+                .eq('id', appointmentId)
 
-        if (error) {
-            console.error('Error updating appointment:', error)
+            if (error) {
+                console.error('Error updating appointment:', error)
+            } else {
+                fetchDashboardData()
+            }
+        } catch (error) {
+            console.error('Error:', error)
+        } finally {
+            setUpdatingId(null)
         }
     }
 
@@ -241,13 +256,17 @@ export default function DashboardPage() {
                             <button
                                 key={status}
                                 onClick={() => updateClinicStatus(status as any)}
-                                className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${clinicStatus === status
+                                disabled={isStatusLoading}
+                                className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${clinicStatus === status
                                     ? status === 'available' ? 'bg-green-50 text-green-600 shadow-sm ring-1 ring-green-100'
                                         : status === 'busy' ? 'bg-orange-50 text-orange-500 shadow-sm ring-1 ring-orange-100'
                                             : 'bg-slate-100 text-slate-600 shadow-sm'
                                     : 'text-slate-400 hover:bg-slate-50'
-                                    }`}
+                                    } ${isStatusLoading && clinicStatus === status ? 'opacity-70' : ''}`}
                             >
+                                {isStatusLoading && clinicStatus === status ? (
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : null}
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
                             </button>
                         ))}
@@ -338,7 +357,7 @@ export default function DashboardPage() {
                                         className="bg-white p-4 rounded-3xl shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-slate-50 flex items-center justify-between"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 ${appointment.status === 'checked_in' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 ${appointment.status === 'ongoing' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'
                                                 }`}>
                                                 {appointment.patient_name.substring(0, 2).toUpperCase()}
                                             </div>
@@ -362,7 +381,7 @@ export default function DashboardPage() {
                                             </div>
                                         </div>
 
-                                        {appointment.status === 'checked_in' ? (
+                                        {appointment.status === 'ongoing' ? (
                                             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-200">
                                                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -371,10 +390,14 @@ export default function DashboardPage() {
                                         ) : (
                                             <Button
                                                 size="sm"
-                                                onClick={() => updateAppointmentStatus(appointment.id, 'checked_in')}
-                                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl px-4 font-bold text-xs h-9 transition-colors"
+                                                onClick={() => updateAppointmentStatus(appointment.id, 'ongoing')}
+                                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl px-4 font-bold text-xs h-9 transition-colors flex items-center gap-2"
+                                                disabled={updatingId === appointment.id}
                                             >
-                                                Check In
+                                                {updatingId === appointment.id ? (
+                                                    <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" />
+                                                ) : null}
+                                                {updatingId === appointment.id ? '...' : 'Check In'}
                                             </Button>
                                         )}
                                     </motion.div>
