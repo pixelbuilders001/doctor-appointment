@@ -11,6 +11,7 @@ import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import { Globe } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Appointment {
     id: string
