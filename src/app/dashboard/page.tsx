@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
+import QRCodeDisplay from '@/components/QRCodeDisplay'
+import { Globe } from 'lucide-react'
 
 interface Appointment {
     id: string
@@ -17,6 +19,7 @@ interface Appointment {
     appointment_time: string
     status: string
     visit_reason?: string
+    booking_source?: string
 }
 
 interface DashboardData {
@@ -40,6 +43,14 @@ export default function DashboardPage() {
     const [clinicId, setClinicId] = useState<string | null>(null)
     const [doctorName, setDoctorName] = useState('Dr. Sharma')
     const [clinicName, setClinicName] = useState('Sharma Clinic')
+    const [clinicSlug, setClinicSlug] = useState<string>('')
+    const [publicUrl, setPublicUrl] = useState<string>('')
+
+    useEffect(() => {
+        if (clinicSlug) {
+            setPublicUrl(`${window.location.origin}/${clinicSlug}`)
+        }
+    }, [clinicSlug])
 
     useEffect(() => {
         checkAuth()
@@ -81,7 +92,7 @@ export default function DashboardPage() {
 
         const { data: userData } = await supabase
             .from('users')
-            .select('clinic_id, clinics(name, doctor_name, clinic_status)')
+            .select('clinic_id, clinics(name, doctor_name, clinic_status, slug)')
             .eq('id', session.user.id)
             .single()
 
@@ -95,6 +106,7 @@ export default function DashboardPage() {
                     setClinicStatus(clinicData.clinic_status as any)
                     setDoctorName(clinicData.doctor_name || 'Dr. Sharma')
                     setClinicName(clinicData.name || 'Sharma Clinic')
+                    setClinicSlug(clinicData.slug || '')
                 }
             }
         }
@@ -132,6 +144,7 @@ export default function DashboardPage() {
                     appointment_time: a.appointment_time || 'Walk-in',
                     status: a.status,
                     visit_reason: a.visit_reason,
+                    booking_source: a.booking_source
                 })) || []
 
             setDashboardData({
@@ -326,7 +339,14 @@ export default function DashboardPage() {
                                                 {appointment.patient_name.substring(0, 2).toUpperCase()}
                                             </div>
                                             <div>
-                                                <h3 className="text-m font-bold text-slate-800">{appointment.patient_name}</h3>
+                                                <h3 className="text-m font-bold text-slate-800 flex items-center gap-2">
+                                                    {appointment.patient_name}
+                                                    {appointment.booking_source === 'online' && (
+                                                        <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                                            <Globe className="w-3 h-3" /> Online
+                                                        </span>
+                                                    )}
+                                                </h3>
                                                 <p className="text-xs text-slate-400 font-medium mt-0.5">
                                                     {appointment.visit_reason || 'General Checkup'} • <span className="text-slate-500">{appointment.appointment_time}</span>
                                                 </p>
@@ -371,6 +391,19 @@ export default function DashboardPage() {
                             <span className="text-xs font-bold">New Delhi, South Delhi</span>
                         </div>
                     </div>
+                </motion.div>
+
+                {/* QR Code Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                >
+                    <QRCodeDisplay
+                        url={publicUrl}
+                        clinicName={clinicName}
+                        doctorName={doctorName}
+                    />
                 </motion.div>
 
             </div>
