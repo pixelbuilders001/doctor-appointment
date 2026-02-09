@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Building } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [clinicName, setClinicName] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -43,8 +44,7 @@ export default function LoginPage() {
 
                     // Create clinic first
                     const doctorName = email.split('@')[0]
-                    const clinicName = 'My Clinic'
-                    const slug = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+                    const slug = clinicName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
 
                     const { data: clinic, error: clinicError } = await supabase
                         .from('clinics')
@@ -119,8 +119,7 @@ export default function LoginPage() {
                     if (!userData && !userCheckError) {
                         // Create clinic first
                         const doctorName = email.split('@')[0]
-                        const clinicName = 'My Clinic'
-                        const slug = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+                        const slug = clinicName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
 
                         const { data: clinic, error: clinicError } = await supabase
                             .from('clinics')
@@ -184,6 +183,29 @@ export default function LoginPage() {
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
                                 {error}
+                            </div>
+                        )}
+
+                        {isSignUp && (
+                            <div className="space-y-2">
+                                <Label htmlFor="clinicName" className="text-sm font-medium text-gray-700">
+                                    Clinic Name
+                                </Label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Building className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <Input
+                                        id="clinicName"
+                                        type="text"
+                                        placeholder="Enter your clinic name"
+                                        value={clinicName}
+                                        onChange={(e) => setClinicName(e.target.value)}
+                                        className="pl-10 h-12 text-base"
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
                             </div>
                         )}
 
