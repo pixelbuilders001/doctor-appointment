@@ -31,6 +31,7 @@ export default function SettingsPage() {
         slot_duration: 15,
         clinic_banner: '',
         clinic_owner: '',
+        specialization: '',
     })
 
     const [settingsData, setSettingsData] = useState({
@@ -81,6 +82,7 @@ export default function SettingsPage() {
                     slot_duration: clinic.slot_duration || 15,
                     clinic_banner: clinic.clinic_banner || '',
                     clinic_owner: clinic.clinic_owner || '',
+                    specialization: clinic.specialization || '',
                 })
             }
 
@@ -138,6 +140,7 @@ export default function SettingsPage() {
                     slot_duration: clinicData.slot_duration,
                     clinic_banner: clinicData.clinic_banner,
                     clinic_owner: clinicData.clinic_owner,
+                    specialization: clinicData.specialization,
                 })
                 .eq('id', clinicId)
 
@@ -226,6 +229,15 @@ export default function SettingsPage() {
                             <Input
                                 value={clinicData.doctor_name}
                                 onChange={(e) => setClinicData({ ...clinicData, doctor_name: e.target.value })}
+                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-500 uppercase">Specialization</Label>
+                            <Input
+                                value={clinicData.specialization}
+                                onChange={(e) => setClinicData({ ...clinicData, specialization: e.target.value })}
+                                placeholder="e.g. Cardiologist, Dermatologist"
                                 className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
                             />
                         </div>

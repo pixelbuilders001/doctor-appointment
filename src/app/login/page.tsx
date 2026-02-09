@@ -42,11 +42,16 @@ export default function LoginPage() {
                     await new Promise(resolve => setTimeout(resolve, 1000))
 
                     // Create clinic first
+                    const doctorName = email.split('@')[0]
+                    const clinicName = 'My Clinic'
+                    const slug = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+
                     const { data: clinic, error: clinicError } = await supabase
                         .from('clinics')
                         .insert({
-                            name: 'My Clinic',
-                            doctor_name: email.split('@')[0],
+                            name: clinicName,
+                            doctor_name: doctorName,
+                            slug: slug,
                             mobile: null,
                             consultation_fee: 500,
                         })
@@ -113,11 +118,16 @@ export default function LoginPage() {
                     // If user doesn't exist in our table, create it
                     if (!userData && !userCheckError) {
                         // Create clinic first
+                        const doctorName = email.split('@')[0]
+                        const clinicName = 'My Clinic'
+                        const slug = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+
                         const { data: clinic, error: clinicError } = await supabase
                             .from('clinics')
                             .insert({
-                                name: 'My Clinic',
-                                doctor_name: email.split('@')[0],
+                                name: clinicName,
+                                doctor_name: doctorName,
+                                slug: slug,
                                 mobile: null,
                                 consultation_fee: 500,
                             })
