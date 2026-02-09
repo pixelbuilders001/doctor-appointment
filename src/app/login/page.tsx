@@ -47,7 +47,7 @@ export default function LoginPage() {
                         .insert({
                             name: 'My Clinic',
                             doctor_name: email.split('@')[0],
-                            mobile: '',
+                            mobile: null,
                             consultation_fee: 500,
                         })
                         .select()
@@ -64,7 +64,7 @@ export default function LoginPage() {
                         const { error: userError } = await supabase.from('users').insert({
                             id: data.user.id,
                             clinic_id: clinic.id,
-                            mobile: '',
+                            mobile: null,
                             role: 'doctor',
                         })
 
@@ -118,7 +118,7 @@ export default function LoginPage() {
                             .insert({
                                 name: 'My Clinic',
                                 doctor_name: email.split('@')[0],
-                                mobile: '',
+                                mobile: null,
                                 consultation_fee: 500,
                             })
                             .select()
@@ -129,7 +129,7 @@ export default function LoginPage() {
                             await supabase.from('users').insert({
                                 id: data.user.id,
                                 clinic_id: clinic.id,
-                                mobile: '',
+                                mobile: null,
                                 role: 'doctor',
                             })
 
