@@ -40,6 +40,7 @@ export default function AppointmentsPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
     const [activeTab, setActiveTab] = useState<'new' | 'ongoing' | 'completed'>('new')
+    const [loading, setLoading] = useState(true)
     const [clinicId, setClinicId] = useState<string | null>(null)
     const [doctorImage, setDoctorImage] = useState<string | null>(null)
     const [userName, setUserName] = useState('')
