@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings, ShieldCheck, Plus, Trash2, Users, Lock, Key, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings, ShieldCheck, Plus, Trash2, Users, Lock, Key, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getClinicStaff, createStaffUser, deleteStaffUser } from '@/app/actions/staff'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -29,8 +29,11 @@ export default function SettingsPage() {
     const [showAddStaffDialog, setShowAddStaffDialog] = useState(false)
     const [newStaffData, setNewStaffData] = useState({ name: '', email: '' })
     const [creatingStaff, setCreatingStaff] = useState(false)
-
     const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+    const [createdStaffCredentials, setCreatedStaffCredentials] = useState<{ email: string, password: string } | null>(null)
+    const [passwordCopied, setPasswordCopied] = useState(false)
+
+    const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
     const [passwords, setPasswords] = useState({ new: '', confirm: '' })
     const [updatingPassword, setUpdatingPassword] = useState(false)
     const [showPass, setShowPass] = useState(false)
@@ -208,11 +211,12 @@ export default function SettingsPage() {
             const res = await createStaffUser(newStaffData)
             if (res.error) throw new Error(res.error)
 
-            toast({
-                title: "Staff Added",
-                description: `Temporary Password: ${res.tempPassword}`,
-                duration: 10000, // Show longer so they can copy password
+            // Store credentials and show success dialog
+            setCreatedStaffCredentials({
+                email: res.email!,
+                password: res.tempPassword!
             })
+            setShowPasswordDialog(true)
             setShowAddStaffDialog(false)
             setNewStaffData({ name: '', email: '' })
 
@@ -227,6 +231,21 @@ export default function SettingsPage() {
             })
         } finally {
             setCreatingStaff(false)
+        }
+    }
+
+    const handleCopyPassword = async () => {
+        if (!createdStaffCredentials) return
+        try {
+            await navigator.clipboard.writeText(createdStaffCredentials.password)
+            setPasswordCopied(true)
+            setTimeout(() => setPasswordCopied(false), 2000)
+        } catch (error) {
+            toast({
+                title: "Failed to copy",
+                description: "Please copy the password manually",
+                variant: "destructive"
+            })
         }
     }
 
@@ -674,14 +693,14 @@ export default function SettingsPage() {
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                                                     <span className="text-sm font-bold text-blue-600 uppercase">
-                                                        {(staff.email || 'S')[0]}
+                                                        {(staff.full_name || staff.email || 'S')[0]}
                                                     </span>
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <p className="text-sm font-bold text-slate-700">{staff.email}</p>
+                                                    <p className="text-sm font-bold text-slate-700">{staff.full_name || 'Staff Member'}</p>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">Staff</span>
-                                                        {staff.mobile && <span className="text-[10px] text-slate-400 font-medium">{staff.mobile}</span>}
+                                                        <span className="text-[10px] text-slate-400 font-medium">{staff.email}</span>
+                                                        {staff.mobile && <span className="text-[10px] text-slate-400 font-medium">• {staff.mobile}</span>}
                                                     </div>
                                                 </div>
                                             </div>
@@ -719,7 +738,7 @@ export default function SettingsPage() {
                                 <p className="text-sm font-bold text-slate-700">Account Password</p>
                                 <p className="text-[10px] text-slate-400 font-medium">Keep your account secure</p>
                             </div>
-                            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                            <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="sm" className="h-10 rounded-xl px-4 font-bold text-slate-600 border-slate-200">
                                         <Key className="w-4 h-4 mr-2" />
@@ -820,6 +839,82 @@ export default function SettingsPage() {
                         Log Out
                     </Button>
                 </motion.div>
+
+                {/* Staff Password Success Dialog */}
+                <Dialog open={showPasswordDialog} onOpenChange={(open) => {
+                    setShowPasswordDialog(open)
+                    if (!open) {
+                        setCreatedStaffCredentials(null)
+                        setPasswordCopied(false)
+                    }
+                }}>
+                    <DialogContent className="rounded-[2rem] p-0 overflow-hidden max-w-md">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 text-center">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", duration: 0.5 }}
+                                className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-200"
+                            >
+                                <CheckCircle2 className="w-8 h-8 text-white" />
+                            </motion.div>
+                            <DialogTitle className="text-2xl font-black text-slate-800 mb-2">Staff Created!</DialogTitle>
+                            <p className="text-sm text-slate-600 font-medium">Share these credentials with the new staff member</p>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Email</Label>
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-sm font-bold text-slate-700">{createdStaffCredentials?.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Temporary Password</Label>
+                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-center justify-between gap-3">
+                                    <code className="text-lg font-black text-amber-900 tracking-wider">{createdStaffCredentials?.password}</code>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleCopyPassword}
+                                        className={cn(
+                                            "h-9 rounded-lg font-bold transition-all",
+                                            passwordCopied
+                                                ? "bg-green-500 hover:bg-green-600"
+                                                : "bg-blue-600 hover:bg-blue-700"
+                                        )}
+                                    >
+                                        {passwordCopied ? (
+                                            <>
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="w-4 h-4 mr-2" />
+                                                Copy
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <p className="text-xs text-blue-700 font-medium leading-relaxed">
+                                    <span className="font-bold">⚠️ Important:</span> Make sure to copy and share this password now. The staff member should change it after their first login.
+                                </p>
+                            </div>
+
+                            <Button
+                                onClick={() => setShowPasswordDialog(false)}
+                                className="w-full h-12 bg-slate-800 hover:bg-slate-900 rounded-xl font-bold"
+                            >
+                                Done
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Modern Bottom Navigation */}

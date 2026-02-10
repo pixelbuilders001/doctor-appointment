@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS clinics (
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     clinic_id UUID REFERENCES clinics(id) ON DELETE CASCADE,
+    full_name VARCHAR(255),
+    email VARCHAR(255),
     mobile VARCHAR(15),
     role VARCHAR(20) DEFAULT 'doctor', -- doctor, staff
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

@@ -20,13 +20,17 @@ export async function getClinicStaff() {
     if (userError || !userData) return { error: 'Clinic not found' }
     if (userData.role !== 'doctor') return { error: 'Unauthorized: Only doctors can manage staff' }
 
-    const { data: staff, error: staffError } = await supabase
+    const adminSupabase = createAdminClient()
+    const { data: staff, error: staffError } = await adminSupabase
         .from('users')
         .select('*')
         .eq('clinic_id', userData.clinic_id)
         .eq('role', 'staff')
 
-    if (staffError) return { error: staffError.message }
+    if (staffError) {
+        console.error('Error fetching staff:', staffError)
+        return { error: staffError.message }
+    }
 
     return { staff }
 }
@@ -67,14 +71,23 @@ export async function createStaffUser(formData: { email: string, name: string })
             id: authUser.user.id,
             clinic_id: userData.clinic_id,
             role: 'staff',
-            mobile: null // Can be updated later by staff in settings
+            full_name: formData.name,
+            email: formData.email,
+            mobile: null
         })
 
     if (linkError) {
+        console.error('Error linking staff to clinic:', linkError)
         // Cleanup auth user if linking fails
         await adminSupabase.auth.admin.deleteUser(authUser.user.id)
         return { error: linkError.message }
     }
+
+    console.log('Staff created successfully:', {
+        authId: authUser.user.id,
+        clinicId: userData.clinic_id,
+        email: formData.email
+    })
 
     revalidatePath('/settings')
     return {
