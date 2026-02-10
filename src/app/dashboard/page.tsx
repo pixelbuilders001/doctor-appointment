@@ -246,7 +246,7 @@ export default function DashboardPage() {
     return (
         <PageTransition className="min-h-screen bg-[#F8F9FD] pb-24 font-sans">
             {/* Header */}
-            <div className="bg-white px-6 py-5 flex items-center justify-between sticky top-0 z-10 shadow-sm/50">
+            <div className="bg-white px-4 py-5 flex items-center justify-between sticky top-0 z-10 shadow-sm/50">
                 <div className="flex items-center gap-4">
                     <div className="relative">
                         <motion.div

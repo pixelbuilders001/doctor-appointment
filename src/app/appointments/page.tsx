@@ -357,12 +357,12 @@ export default function AppointmentsPage() {
     return (
         <PageTransition className="min-h-screen bg-[#F8F9FD] pb-24 font-sans">
             {/* Header */}
-            <div className="bg-white px-6 py-5 sticky top-0 z-10 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
+            <div className="bg-white px-4 py-5 sticky top-0 z-10 shadow-sm">
+                <div className="flex items-center justify-between gap-3 mb-6">
+                    <div className="flex items-center gap-3 min-w-0">
                         <motion.div
                             whileHover={{ scale: 1.05 }}
-                            className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden"
+                            className="w-11 h-11 rounded-full bg-blue-50 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden shrink-0"
                         >
                             {doctorImage ? (
                                 <img src={doctorImage} alt="Clinic" className="w-full h-full object-cover" />
@@ -370,23 +370,23 @@ export default function AppointmentsPage() {
                                 <Calendar className="w-5 h-5 text-blue-600" />
                             )}
                         </motion.div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-800">Appointments</h1>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-bold text-slate-800 truncate">Appointments</h1>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 truncate">
                                 {selectedDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                         <Input
                             type="date"
                             value={selectedDate.toISOString().split('T')[0]}
                             onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                            className="w-32 h-9 text-xs font-bold border-slate-100 rounded-lg bg-slate-50 focus:ring-blue-500"
+                            className="w-28 h-9 text-[10px] font-bold border-slate-100 rounded-lg bg-slate-50 focus:ring-blue-500 px-2"
                         />
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                            <User className="w-4 h-4 text-blue-500" />
-                            <span className="text-[10px] font-black text-slate-600 truncate max-w-[80px]">{userName}</span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-full border border-slate-100">
+                            <User className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="text-[9px] font-black text-slate-600 truncate max-w-[60px]">{userName}</span>
                         </div>
                     </div>
                 </div>
