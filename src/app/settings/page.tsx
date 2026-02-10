@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings } from 'lucide-react'
+import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings, ShieldCheck, Plus, Trash2, Users, Lock, Key, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getClinicStaff, createStaffUser, deleteStaffUser } from '@/app/actions/staff'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { motion } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
@@ -22,6 +24,19 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [clinicId, setClinicId] = useState<string | null>(null)
+    const [userRole, setUserRole] = useState<string | null>(null)
+    const [staffList, setStaffList] = useState<any[]>([])
+    const [showAddStaffDialog, setShowAddStaffDialog] = useState(false)
+    const [newStaffData, setNewStaffData] = useState({ name: '', email: '' })
+    const [creatingStaff, setCreatingStaff] = useState(false)
+
+    const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+    const [passwords, setPasswords] = useState({ new: '', confirm: '' })
+    const [updatingPassword, setUpdatingPassword] = useState(false)
+    const [showPass, setShowPass] = useState(false)
+    const [showConfirmPass, setShowConfirmPass] = useState(false)
+
+    const isReadOnly = userRole !== 'doctor'
 
     const [clinicData, setClinicData] = useState({
         name: '',
@@ -59,13 +74,20 @@ export default function SettingsPage() {
 
             const { data: userData } = await supabase
                 .from('users')
-                .select('clinic_id')
+                .select('clinic_id, role')
                 .eq('id', session.user.id)
                 .single()
 
             if (!userData) return
 
             setClinicId(userData.clinic_id)
+            setUserRole(userData.role)
+
+            // Load staff if user is a doctor
+            if (userData.role === 'doctor') {
+                const { staff } = await getClinicStaff()
+                if (staff) setStaffList(staff)
+            }
 
             const { data: clinic } = await supabase
                 .from('clinics')
@@ -178,6 +200,76 @@ export default function SettingsPage() {
         }
     }
 
+    const handleAddStaff = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!newStaffData.email || !newStaffData.name) return
+        setCreatingStaff(true)
+        try {
+            const res = await createStaffUser(newStaffData)
+            if (res.error) throw new Error(res.error)
+
+            toast({
+                title: "Staff Added",
+                description: `Temporary Password: ${res.tempPassword}`,
+                duration: 10000, // Show longer so they can copy password
+            })
+            setShowAddStaffDialog(false)
+            setNewStaffData({ name: '', email: '' })
+
+            // Refresh staff list
+            const { staff } = await getClinicStaff()
+            if (staff) setStaffList(staff)
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message,
+                variant: "destructive"
+            })
+        } finally {
+            setCreatingStaff(false)
+        }
+    }
+
+    const handleDeleteStaff = async (id: string) => {
+        if (!confirm('Are you sure you want to remove this staff member?')) return
+        try {
+            const res = await deleteStaffUser(id)
+            if (res.error) throw new Error(res.error)
+            toast({ title: "Staff Removed" })
+            setStaffList(staffList.filter(s => s.id !== id))
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" })
+        }
+    }
+
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (passwords.new !== passwords.confirm) {
+            toast({ title: "Passwords don't match", variant: "destructive" })
+            return
+        }
+        if (passwords.new.length < 6) {
+            toast({ title: "Password too short", description: "Minimum 6 characters", variant: "destructive" })
+            return
+        }
+
+        setUpdatingPassword(true)
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: passwords.new
+            })
+            if (error) throw error
+
+            toast({ title: "Password Updated", description: "Your password has been changed successfully." })
+            setShowPasswordDialog(false)
+            setPasswords({ new: '', confirm: '' })
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" })
+        } finally {
+            setUpdatingPassword(false)
+        }
+    }
+
     const handleLogout = async () => {
         await supabase.auth.signOut()
         router.push('/login')
@@ -200,6 +292,17 @@ export default function SettingsPage() {
                     </Button>
                     <h1 className="text-xl font-bold text-slate-800">Settings</h1>
                 </div>
+                {isReadOnly && (
+                    <div className="mx-6 mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                            <ShieldCheck className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <p className="text-sm font-black text-amber-900 leading-none">View-Only Mode</p>
+                            <p className="text-[10px] font-bold text-amber-700/80">Only doctors can modify clinic settings.</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="px-6 py-6 max-w-lg mx-auto space-y-8">
@@ -222,7 +325,8 @@ export default function SettingsPage() {
                             <Input
                                 value={clinicData.name}
                                 onChange={(e) => setClinicData({ ...clinicData, name: e.target.value })}
-                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                disabled={isReadOnly}
+                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 disabled:opacity-70"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -230,7 +334,8 @@ export default function SettingsPage() {
                             <Input
                                 value={clinicData.doctor_name}
                                 onChange={(e) => setClinicData({ ...clinicData, doctor_name: e.target.value })}
-                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                disabled={isReadOnly}
+                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 disabled:opacity-70"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -239,7 +344,8 @@ export default function SettingsPage() {
                                 value={clinicData.specialization}
                                 onChange={(e) => setClinicData({ ...clinicData, specialization: e.target.value })}
                                 placeholder="e.g. Cardiologist, Dermatologist"
-                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500"
+                                disabled={isReadOnly}
+                                className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 disabled:opacity-70"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -247,7 +353,8 @@ export default function SettingsPage() {
                             <Textarea
                                 value={clinicData.address}
                                 onChange={(e) => setClinicData({ ...clinicData, address: e.target.value })}
-                                className="bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 min-h-[80px]"
+                                disabled={isReadOnly}
+                                className="bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 min-h-[80px] disabled:opacity-70"
                             />
                         </div>
 
@@ -257,8 +364,11 @@ export default function SettingsPage() {
                                 <Label className="text-xs font-bold text-slate-500 uppercase">Clinic Banner Image</Label>
                                 <div className="flex flex-col gap-3">
                                     <div
-                                        onClick={() => document.getElementById('banner-upload')?.click()}
-                                        className="h-32 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-center items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors overflow-hidden relative"
+                                        onClick={() => !isReadOnly && document.getElementById('banner-upload')?.click()}
+                                        className={cn(
+                                            "h-32 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-center items-center justify-center transition-colors overflow-hidden relative",
+                                            !isReadOnly ? "cursor-pointer hover:bg-slate-100" : "cursor-default opacity-80"
+                                        )}
                                     >
                                         {clinicData.clinic_banner ? (
                                             <img src={clinicData.clinic_banner} alt="Banner" className="w-full h-full object-cover" />
@@ -303,8 +413,11 @@ export default function SettingsPage() {
                                 <Label className="text-xs font-bold text-slate-500 uppercase">Doctor/Owner Profile Image</Label>
                                 <div className="flex items-center gap-6">
                                     <div
-                                        onClick={() => document.getElementById('owner-upload')?.click()}
-                                        className="h-24 w-24 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors overflow-hidden relative shrink-0"
+                                        onClick={() => !isReadOnly && document.getElementById('owner-upload')?.click()}
+                                        className={cn(
+                                            "h-24 w-24 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center transition-colors overflow-hidden relative shrink-0",
+                                            !isReadOnly ? "cursor-pointer hover:bg-slate-100" : "cursor-default opacity-80"
+                                        )}
                                     >
                                         {clinicData.clinic_owner ? (
                                             <img src={clinicData.clinic_owner} alt="Owner" className="w-full h-full object-cover" />
@@ -370,7 +483,8 @@ export default function SettingsPage() {
                                     type="number"
                                     value={clinicData.consultation_fee}
                                     onChange={(e) => setClinicData({ ...clinicData, consultation_fee: parseInt(e.target.value) || 0 })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-bold text-slate-700 focus-visible:ring-blue-500"
+                                    disabled={isReadOnly}
+                                    className="h-12 bg-slate-50 border-0 rounded-xl font-bold text-slate-700 focus-visible:ring-blue-500 disabled:opacity-70"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -378,7 +492,8 @@ export default function SettingsPage() {
                                 <select
                                     value={clinicData.slot_duration}
                                     onChange={(e) => setClinicData({ ...clinicData, slot_duration: parseInt(e.target.value) })}
-                                    className="w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-bold text-slate-700 focus-visible:ring-blue-500 outline-none"
+                                    disabled={isReadOnly}
+                                    className="w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-bold text-slate-700 focus-visible:ring-blue-500 outline-none disabled:opacity-70"
                                 >
                                     <option value="10">10 Mins</option>
                                     <option value="15">15 Mins</option>
@@ -410,14 +525,16 @@ export default function SettingsPage() {
                                     type="time"
                                     value={settingsData.morning_start}
                                     onChange={(e) => setSettingsData({ ...settingsData, morning_start: e.target.value })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center"
+                                    disabled={isReadOnly}
+                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center disabled:opacity-70"
                                 />
                                 <span className="text-slate-300 font-bold">-</span>
                                 <Input
                                     type="time"
                                     value={settingsData.morning_end}
                                     onChange={(e) => setSettingsData({ ...settingsData, morning_end: e.target.value })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center"
+                                    disabled={isReadOnly}
+                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center disabled:opacity-70"
                                 />
                             </div>
                         </div>
@@ -428,14 +545,16 @@ export default function SettingsPage() {
                                     type="time"
                                     value={settingsData.evening_start}
                                     onChange={(e) => setSettingsData({ ...settingsData, evening_start: e.target.value })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center"
+                                    disabled={isReadOnly}
+                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center disabled:opacity-70"
                                 />
                                 <span className="text-slate-300 font-bold">-</span>
                                 <Input
                                     type="time"
                                     value={settingsData.evening_end}
                                     onChange={(e) => setSettingsData({ ...settingsData, evening_end: e.target.value })}
-                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center"
+                                    disabled={isReadOnly}
+                                    className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 text-center disabled:opacity-70"
                                 />
                             </div>
                         </div>
@@ -463,6 +582,7 @@ export default function SettingsPage() {
                             <Switch
                                 checked={settingsData.send_confirmations}
                                 onCheckedChange={(checked) => setSettingsData({ ...settingsData, send_confirmations: checked })}
+                                disabled={isReadOnly}
                             />
                         </div>
                         <div className="flex items-center justify-between">
@@ -473,7 +593,194 @@ export default function SettingsPage() {
                             <Switch
                                 checked={settingsData.send_reminders}
                                 onCheckedChange={(checked) => setSettingsData({ ...settingsData, send_reminders: checked })}
+                                disabled={isReadOnly}
                             />
+                        </div>
+                    </div>
+                </motion.section>
+                {/* Staff Management Section (Doctors Only) */}
+                {!isReadOnly && (
+                    <motion.section
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="space-y-4"
+                    >
+                        <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-blue-500" />
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinic Staff</h2>
+                            </div>
+                            <Dialog open={showAddStaffDialog} onOpenChange={setShowAddStaffDialog}>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 rounded-lg text-blue-600 font-bold gap-1 hover:bg-blue-50">
+                                        <Plus className="w-4 h-4" />
+                                        Add Staff
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="rounded-[2rem] p-6">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl font-black text-slate-800">Add Staff Member</DialogTitle>
+                                    </DialogHeader>
+                                    <form onSubmit={handleAddStaff} className="space-y-4 mt-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">Full Name</Label>
+                                            <Input
+                                                required
+                                                value={newStaffData.name}
+                                                onChange={(e) => setNewStaffData({ ...newStaffData, name: e.target.value })}
+                                                placeholder="e.g. John Doe"
+                                                className="h-12 bg-slate-50 border-0 rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">Email Address</Label>
+                                            <Input
+                                                required
+                                                type="email"
+                                                value={newStaffData.email}
+                                                onChange={(e) => setNewStaffData({ ...newStaffData, email: e.target.value })}
+                                                placeholder="staff@clinic.com"
+                                                className="h-12 bg-slate-50 border-0 rounded-xl"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium bg-slate-50 p-3 rounded-xl">
+                                            A temporary password will be generated for the staff member to log in.
+                                        </p>
+                                        <Button
+                                            type="submit"
+                                            className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold"
+                                            disabled={creatingStaff}
+                                        >
+                                            {creatingStaff ? 'Creating...' : 'Create Staff User'}
+                                        </Button>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+
+                        <div className="bg-white p-2 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50">
+                            {staffList.length === 0 ? (
+                                <div className="py-8 text-center space-y-2">
+                                    <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                                        <Users className="w-6 h-6 text-slate-300" />
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-400">No staff members added yet</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-50">
+                                    {staffList.map((staff) => (
+                                        <div key={staff.id} className="p-4 flex items-center justify-between group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                                                    <span className="text-sm font-bold text-blue-600 uppercase">
+                                                        {(staff.email || 'S')[0]}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <p className="text-sm font-bold text-slate-700">{staff.email}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase">Staff</span>
+                                                        {staff.mobile && <span className="text-[10px] text-slate-400 font-medium">{staff.mobile}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="opacity-0 group-hover:opacity-100 h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                onClick={() => handleDeleteStaff(staff.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </motion.section>
+                )}
+
+                {/* Security Section */}
+                <motion.section
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="space-y-4"
+                >
+                    <div className="flex items-center gap-2 px-1">
+                        <Lock className="h-4 w-4 text-blue-500" />
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Security</h2>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-sm font-bold text-slate-700">Account Password</p>
+                                <p className="text-[10px] text-slate-400 font-medium">Keep your account secure</p>
+                            </div>
+                            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-10 rounded-xl px-4 font-bold text-slate-600 border-slate-200">
+                                        <Key className="w-4 h-4 mr-2" />
+                                        Change Password
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="rounded-[2rem] p-6">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl font-black text-slate-800">Update Password</DialogTitle>
+                                    </DialogHeader>
+                                    <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">New Password</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    required
+                                                    type={showPass ? "text" : "password"}
+                                                    value={passwords.new}
+                                                    onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                                                    placeholder="••••••••"
+                                                    className="h-12 bg-slate-50 border-0 rounded-xl pr-12"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPass(!showPass)}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                >
+                                                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">Confirm Password</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    required
+                                                    type={showConfirmPass ? "text" : "password"}
+                                                    value={passwords.confirm}
+                                                    onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                                                    placeholder="••••••••"
+                                                    className="h-12 bg-slate-50 border-0 rounded-xl pr-12"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                >
+                                                    {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="submit"
+                                            className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold"
+                                            disabled={updatingPassword}
+                                        >
+                                            {updatingPassword ? 'Updating...' : 'Update Password'}
+                                        </Button>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
                 </motion.section>
@@ -484,23 +791,25 @@ export default function SettingsPage() {
                     transition={{ delay: 0.5 }}
                     className="pt-4 space-y-4"
                 >
-                    <Button
-                        className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-200 text-base font-bold tracking-wide transition-transform active:scale-95"
-                        onClick={handleSave}
-                        disabled={saving}
-                    >
-                        {saving ? (
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span>Saving...</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Save className="w-5 h-5" />
-                                <span>Save Changes</span>
-                            </div>
-                        )}
-                    </Button>
+                    {!isReadOnly && (
+                        <Button
+                            className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-200 text-base font-bold tracking-wide transition-transform active:scale-95"
+                            onClick={handleSave}
+                            disabled={saving}
+                        >
+                            {saving ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Saving...</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Save className="w-5 h-5" />
+                                    <span>Save Changes</span>
+                                </div>
+                            )}
+                        </Button>
+                    )}
 
                     <Button
                         variant="ghost"

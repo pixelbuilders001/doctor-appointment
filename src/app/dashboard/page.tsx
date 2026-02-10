@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Plus, Bell, MapPin } from 'lucide-react'
+import { Plus, MapPin, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
@@ -51,6 +51,8 @@ export default function DashboardPage() {
     const [clinicId, setClinicId] = useState<string | null>(null)
     const [doctorName, setDoctorName] = useState('Dr. Sharma')
     const [clinicName, setClinicName] = useState('Sharma Clinic')
+    const [doctorImage, setDoctorImage] = useState<string | null>(null)
+    const [userName, setUserName] = useState('')
     const [clinicSlug, setClinicSlug] = useState<string>('')
     const [publicUrl, setPublicUrl] = useState<string>('')
 
@@ -98,9 +100,11 @@ export default function DashboardPage() {
             return
         }
 
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User')
+
         const { data: userData } = await supabase
             .from('users')
-            .select('clinic_id, clinics(name, doctor_name, clinic_status, slug)')
+            .select('clinic_id, clinics(name, doctor_name, clinic_status, slug, clinic_owner)')
             .eq('id', session.user.id)
             .single()
 
@@ -115,6 +119,7 @@ export default function DashboardPage() {
                     setDoctorName(clinicData.doctor_name || 'Dr. Sharma')
                     setClinicName(clinicData.name || 'Sharma Clinic')
                     setClinicSlug(clinicData.slug || '')
+                    setDoctorImage(clinicData.clinic_owner || null)
                 }
             }
         }
@@ -246,9 +251,13 @@ export default function DashboardPage() {
                     <div className="relative">
                         <motion.div
                             whileTap={{ scale: 0.95 }}
-                            className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden"
+                            className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden"
                         >
-                            <span className="text-blue-600 font-bold text-xl">{doctorName.charAt(0)}</span>
+                            {doctorImage ? (
+                                <img src={doctorImage} alt={doctorName} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-blue-600 font-bold text-xl">{doctorName.charAt(0)}</span>
+                            )}
                         </motion.div>
                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
                     </div>
@@ -257,10 +266,10 @@ export default function DashboardPage() {
                         <p className="text-xs text-slate-500 font-medium">{clinicName}</p>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 relative">
-                    <Bell className="h-6 w-6" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                </Button>
+                <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                    <User className="w-4 h-4 text-blue-500" />
+                    <span className="text-xs font-bold text-slate-600 truncate max-w-[100px]">{userName}</span>
+                </div>
             </div>
 
             <div className="px-6 py-6 space-y-7 max-w-lg mx-auto">

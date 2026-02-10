@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, Bell, ChevronRight, Filter, Calendar, Settings, Phone, MapPin } from 'lucide-react'
+import { Plus, Search, ChevronRight, Filter, Calendar, Settings, Phone, MapPin, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
@@ -40,8 +40,9 @@ export default function AppointmentsPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
     const [activeTab, setActiveTab] = useState<'new' | 'ongoing' | 'completed'>('new')
-    const [loading, setLoading] = useState(true)
     const [clinicId, setClinicId] = useState<string | null>(null)
+    const [doctorImage, setDoctorImage] = useState<string | null>(null)
+    const [userName, setUserName] = useState('')
     const [showAddDialog, setShowAddDialog] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
     const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -102,14 +103,20 @@ export default function AppointmentsPage() {
             return
         }
 
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User')
+
         const { data: userData } = await supabase
             .from('users')
-            .select('clinic_id')
+            .select('clinic_id, clinics(clinic_owner)')
             .eq('id', session.user.id)
             .single()
 
         if (userData) {
             setClinicId(userData.clinic_id)
+            if (userData.clinics) {
+                const clinic = Array.isArray(userData.clinics) ? userData.clinics[0] : userData.clinics
+                setDoctorImage((clinic as any)?.clinic_owner || null)
+            }
 
             // Keep loading true until first fetch
             if (!appointments.length) {
@@ -354,9 +361,13 @@ export default function AppointmentsPage() {
                     <div className="flex items-center gap-3">
                         <motion.div
                             whileHover={{ scale: 1.05 }}
-                            className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-100"
+                            className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden"
                         >
-                            <Calendar className="w-5 h-5 text-white" />
+                            {doctorImage ? (
+                                <img src={doctorImage} alt="Clinic" className="w-full h-full object-cover" />
+                            ) : (
+                                <Calendar className="w-5 h-5 text-blue-600" />
+                            )}
                         </motion.div>
                         <div>
                             <h1 className="text-xl font-bold text-slate-800">Appointments</h1>
@@ -372,6 +383,10 @@ export default function AppointmentsPage() {
                             onChange={(e) => setSelectedDate(new Date(e.target.value))}
                             className="w-32 h-9 text-xs font-bold border-slate-100 rounded-lg bg-slate-50 focus:ring-blue-500"
                         />
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                            <User className="w-4 h-4 text-blue-500" />
+                            <span className="text-[10px] font-black text-slate-600 truncate max-w-[80px]">{userName}</span>
+                        </div>
                     </div>
                 </div>
 
