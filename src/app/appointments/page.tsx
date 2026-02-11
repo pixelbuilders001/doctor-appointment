@@ -15,7 +15,9 @@ import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { getAppointments } from '@/app/actions/appointments'
+import { useRef, useCallback } from 'react'
 
 interface Appointment {
     id: string
@@ -40,7 +42,21 @@ export default function AppointmentsPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
     const [activeTab, setActiveTab] = useState<'new' | 'ongoing' | 'completed'>('new')
+    const [counts, setCounts] = useState({ new: 0, ongoing: 0, completed: 0 })
     const [loading, setLoading] = useState(true)
+    const [isFilterLoading, setIsFilterLoading] = useState(false)
+    // const [searchQuery, setSearchQuery] = useState('') // Main list doesn't use search anymore
+
+    // Bottom Sheet Search State
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [sheetSearchQuery, setSheetSearchQuery] = useState('')
+    const [sheetResults, setSheetResults] = useState<Appointment[]>([])
+    const [isSheetLoading, setIsSheetLoading] = useState(false)
+    const [page, setPage] = useState(0)
+    const [hasMore, setHasMore] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [totalCount, setTotalCount] = useState(0)
+    const observer = useRef<IntersectionObserver | null>(null)
     const [clinicId, setClinicId] = useState<string | null>(null)
     const [doctorImage, setDoctorImage] = useState<string | null>(null)
     const [userName, setUserName] = useState('')
@@ -68,7 +84,8 @@ export default function AppointmentsPage() {
 
     useEffect(() => {
         if (clinicId) {
-            fetchAppointments()
+            // Initial fetch
+            fetchAppointments(true)
 
             const channel = supabase
                 .channel('appointments-realtime')
@@ -81,7 +98,8 @@ export default function AppointmentsPage() {
                         filter: `clinic_id=eq.${clinicId}`,
                     },
                     () => {
-                        fetchAppointments()
+                        // Refresh current view on changes
+                        fetchAppointments(true)
                     }
                 )
                 .subscribe()
@@ -90,11 +108,32 @@ export default function AppointmentsPage() {
                 supabase.removeChannel(channel)
             }
         }
-    }, [clinicId, selectedDate])
-
+    }, [clinicId, selectedDate, activeTab])
+    // Debounce search in sheet
     useEffect(() => {
-        filterAppointments()
-    }, [appointments, activeTab])
+        if (!clinicId || !isSearchOpen) return
+
+        const timer = setTimeout(() => {
+            if (sheetSearchQuery.trim()) {
+                performSheetSearch()
+            } else {
+                setSheetResults([])
+            }
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [sheetSearchQuery, isSearchOpen])
+
+    // Infinite scroll observer
+    const lastAppointmentElementRef = useCallback((node: HTMLDivElement) => {
+        if (loading || loadingMore) return
+        if (observer.current) observer.current.disconnect()
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMore()
+            }
+        })
+        if (node) observer.current.observe(node)
+    }, [loading, loadingMore, hasMore])
 
     const checkAuth = async () => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -121,45 +160,119 @@ export default function AppointmentsPage() {
 
             // Keep loading true until first fetch
             if (!appointments.length) {
-                fetchAppointments()
+                // fetchAppointments() // Initial fetch is already called in useEffect
             }
         }
     }
 
-    const fetchAppointments = async () => {
+    const fetchAppointments = async (reset = false) => {
         if (!clinicId) return
 
         try {
+            if (reset) {
+                setIsFilterLoading(true)
+                setPage(0)
+            }
+
             const dateStr = selectedDate.toISOString().split('T')[0]
+            const currentPage = reset ? 0 : page
 
-            const { data, error } = await supabase
-                .from('appointments')
-                .select('*')
-                .eq('clinic_id', clinicId)
-                .eq('appointment_date', dateStr)
-                .order('token_number', { ascending: true })
+            const result = await getAppointments({
+                clinicId,
+                date: dateStr,
+                // searchQuery: searchQuery, // Removed
+                page: currentPage,
+                limit: 10,
+                status: activeTab === 'new' ? 'booked' : activeTab as any
+            })
 
-            if (error) {
-                console.error('Error fetching appointments:', error)
+            if (result.error) {
+                console.error('Error fetching appointments:', result.error)
                 return
             }
 
-            setAppointments(data || [])
+            if (reset) {
+                setAppointments(result.appointments as any)
+                if (result.counts) setCounts(result.counts)
+            } else {
+                setAppointments(prev => [...prev, ...result.appointments as any])
+                // Update counts on load more? Usually not needed unless deep pagination.
+                // But if they change, good to update.
+                if (result.counts) setCounts(result.counts)
+            }
+
+            setTotalCount(result.count)
+            setHasMore(result.hasMore)
+            setPage(currentPage)
         } catch (error) {
             console.error('Error:', error)
         } finally {
             setLoading(false)
+            setIsFilterLoading(false)
+            setLoadingMore(false)
         }
     }
 
-    const filterAppointments = () => {
-        const mapping = {
-            new: 'confirmed',
-            ongoing: 'ongoing',
-            completed: 'completed'
+    const loadMore = async () => {
+        if (!hasMore || loadingMore) return
+        setLoadingMore(true)
+        setPage(prev => prev + 1)
+
+        // We need to call fetch logic but with new page. 
+        // Reusing logic in loadMore to avoid state closure issues or duplication.
+        if (!clinicId) return
+
+        try {
+            const dateStr = selectedDate.toISOString().split('T')[0]
+            const nextPage = page + 1
+
+            const result = await getAppointments({
+                clinicId,
+                date: dateStr,
+                // searchQuery: searchQuery, // Removed
+                page: nextPage,
+                limit: 10,
+                status: activeTab === 'new' ? 'booked' : activeTab as any
+            })
+
+            if (result.error) return
+
+            setAppointments(prev => [...prev, ...result.appointments as any])
+            setHasMore(result.hasMore)
+        } catch (error) {
+            console.error('Error:', error)
+        } finally {
+            setLoadingMore(false)
         }
-        setFilteredAppointments(appointments.filter(a => a.status === mapping[activeTab]))
     }
+
+    const performSheetSearch = async () => {
+        if (!clinicId || !sheetSearchQuery.trim()) return
+
+        setIsSheetLoading(true)
+        try {
+            const result = await getAppointments({
+                clinicId,
+                date: selectedDate.toISOString().split('T')[0], // Passed but ignored if query exists
+                searchQuery: sheetSearchQuery,
+                page: 0,
+                limit: 50,
+                status: undefined
+            })
+
+            if (result.error) {
+                console.error(result.error)
+                return
+            }
+
+            setSheetResults(result.appointments as any)
+        } catch (error) {
+            console.error('Search error:', error)
+        } finally {
+            setIsSheetLoading(false)
+        }
+    }
+
 
     const validateNewAppointment = () => {
         const newErrors: Record<string, string> = {}
@@ -251,7 +364,7 @@ export default function AppointmentsPage() {
             })
             // Fetch will happen via realtime
             if (dateStr === selectedDate.toISOString().split('T')[0]) {
-                fetchAppointments()
+                fetchAppointments(true)
             }
         } catch (error) {
             console.error('Error:', error)
@@ -284,9 +397,18 @@ export default function AppointmentsPage() {
             if (error) {
                 console.error('Error updating appointment:', error)
             } else {
-                fetchAppointments()
+                const targetTab =
+                    newStatus === 'ongoing' ? 'ongoing' :
+                        newStatus === 'completed' ? 'completed' :
+                            (newStatus === 'booked' || newStatus === 'confirmed') ? 'new' :
+                                activeTab;
+
+                if (targetTab !== activeTab) {
+                    setActiveTab(targetTab as any);
+                } else {
+                    fetchAppointments(true);
+                }
             }
-            setUpdatingId(null)
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -305,7 +427,7 @@ export default function AppointmentsPage() {
             if (error) {
                 console.error('Error updating payment status:', error)
             } else {
-                fetchAppointments()
+                fetchAppointments(true)
             }
         } catch (error) {
             console.error('Error:', error)
@@ -331,10 +453,11 @@ export default function AppointmentsPage() {
                 })
             } else {
                 toast({
-                    title: "Deleted",
-                    description: "Appointment has been removed.",
+                    title: "Success",
+                    description: "Appointment deleted successfully!",
                 })
-                fetchAppointments()
+                fetchAppointments(true)
+                setShowAddDialog(false)
             }
         } catch (error) {
             console.error('Error:', error)
@@ -370,25 +493,36 @@ export default function AppointmentsPage() {
                                 <Calendar className="w-5 h-5 text-blue-600" />
                             )}
                         </motion.div>
-                        <div className="min-w-0">
-                            <h1 className="text-lg font-bold text-slate-800 truncate">Appointments</h1>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 truncate">
+                        {/* <div className="min-w-0">
+                            <h1 className="text-xs font-bold text-slate-800 truncate">Appointments</h1>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 truncate">
                                 {selectedDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                        </div> */}
                         <Input
                             type="date"
                             value={selectedDate.toISOString().split('T')[0]}
                             onChange={(e) => setSelectedDate(new Date(e.target.value))}
                             className="w-28 h-9 text-[10px] font-bold border-slate-100 rounded-lg bg-slate-50 focus:ring-blue-500 px-2"
                         />
-                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-full border border-slate-100">
-                            <User className="w-3.5 h-3.5 text-blue-500" />
-                            <span className="text-[9px] font-black text-slate-600 truncate max-w-[60px]">{userName}</span>
-                        </div>
                     </div>
+                    {/* <div className="flex items-center gap-1.5 shrink-0"> */}
+                    {/* Search Trigger */}
+                    <button
+                        onClick={() => {
+                            setIsSearchOpen(true)
+                            // setTimeout(() => document.getElementById('sheet-search-input')?.focus(), 100)
+                        }}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                    >
+                        <Search className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-full border border-slate-100">
+                        <User className="w-3.5 h-3.5 text-blue-500" />
+                        <span className="text-[9px] font-black text-slate-600 truncate max-w-[60px]">{userName}</span>
+                    </div>
+                    {/* </div> */}
                 </div>
 
                 {/* Modern Tab Switcher */}
@@ -406,13 +540,14 @@ export default function AppointmentsPage() {
                         >
                             {tab === 'new' ? 'New' : tab === 'ongoing' ? 'Ongoing' : 'Completed'}
                             <span className={cn(
-                                "ml-1.5 px-1.5 py-0.5 rounded-md text-[9px]",
+                                "ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] min-w-[20px] inline-flex items-center justify-center",
                                 activeTab === tab ? "bg-blue-50 text-blue-600" : "bg-slate-200 text-slate-500"
                             )}>
-                                {appointments.filter(a => {
-                                    const m = { new: 'confirmed', ongoing: 'ongoing', completed: 'completed' }
-                                    return a.status === m[tab]
-                                }).length}
+                                {isFilterLoading && activeTab === tab ? (
+                                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                ) : (
+                                    counts[tab]
+                                )}
                             </span>
                         </button>
                     ))}
@@ -420,9 +555,11 @@ export default function AppointmentsPage() {
             </div>
 
 
+
             {/* List */}
             <div className="space-y-4 px-6 py-6 max-w-lg mx-auto pb-32">
-                {filteredAppointments.length === 0 ? (
+
+                {!isFilterLoading && appointments.length === 0 && !loading ? (
                     <div className="text-center py-20">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Calendar className="w-8 h-8 text-slate-200" />
@@ -430,141 +567,39 @@ export default function AppointmentsPage() {
                         <p className="text-slate-400 font-medium text-sm">No {activeTab} appointments</p>
                     </div>
                 ) : (
-                    <AnimatePresence>
-                        {filteredAppointments.map((app, index) => (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ delay: index * 0.05 }}
-                                layout
-                                key={app.id}
-                                className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden group active:scale-[0.99] transition-transform"
-                            >
-                                {/* Background Accent */}
-                                <div className={cn(
-                                    "absolute top-0 left-0 w-1 h-full",
-                                    app.status === 'completed' ? 'bg-green-500' :
-                                        app.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
-                                )} />
-
-                                <div className="flex justify-between items-start gap-3">
-                                    <div className="flex gap-3">
-                                        {/* Token Badge */}
-                                        <div className={cn(
-                                            "flex flex-col items-center justify-center w-12 h-14 rounded-2xl text-white shadow-lg shrink-0",
-                                            app.status === 'completed' ? 'bg-green-500 shadow-green-100' :
-                                                app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-100' :
-                                                    'bg-blue-500 shadow-blue-100'
-                                        )}>
-                                            <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">Token</span>
-                                            <span className="text-xl font-black leading-none">{String(app.token_number).padStart(2, '0')}</span>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="text-base font-black text-slate-800 tracking-tight">{app.patient_name}</h3>
-                                                <Badge className={cn(
-                                                    "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border-0",
-                                                    app.payment_status === 'paid' ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : 'bg-amber-100 text-amber-700'
-                                                )}>
-                                                    {app.payment_status || 'pending'}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Patient Details Grid */}
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                                <div className="flex items-center gap-1.5 text-slate-500">
-                                                    <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
-                                                        {app.patient_age}Y • {app.patient_gender?.charAt(0)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                    {app.appointment_type || 'New'}
-                                                </div>
-                                                <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                                                    <Phone className="w-2.5 h-2.5" />
-                                                    <span>{app.patient_mobile}</span>
-                                                </div>
-                                                <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400 truncate max-w-[180px]">
-                                                    <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                                    <span className="truncate">{app.address || app.patient_address || 'No Address'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                    <AnimatePresence mode='popLayout'>
+                        {appointments.map((app, index) => {
+                            // attach ref to last element
+                            if (index === appointments.length - 1) {
+                                return (
+                                    <div ref={lastAppointmentElementRef} key={app.id}>
+                                        <AppointmentCard app={app} index={index}
+                                            updatingId={updatingId}
+                                            updateAppointmentStatus={updateAppointmentStatus}
+                                            updatePaymentStatus={updatePaymentStatus}
+                                            setAppointmentToDelete={setAppointmentToDelete}
+                                            setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                        />
                                     </div>
-
-                                    {/* Top Right Status */}
-                                    <div className={cn(
-                                        "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
-                                        app.status === 'confirmed' ? 'bg-blue-50 text-blue-600' :
-                                            app.status === 'ongoing' ? 'bg-orange-50 text-orange-600' :
-                                                app.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
-                                    )}>
-                                        {app.status}
-                                    </div>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="h-px bg-slate-50 my-4" />
-
-                                {/* Actions Container */}
-                                <div className="flex gap-2">
-                                    {app.status === 'confirmed' && (
-                                        <Button
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-70"
-                                            onClick={() => updateAppointmentStatus(app.id, 'ongoing')}
-                                            disabled={updatingId === app.id}
-                                        >
-                                            {updatingId === app.id ? '...' : 'Check-in'}
-                                        </Button>
-                                    )}
-
-                                    {app.status === 'ongoing' && (
-                                        <Button
-                                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-70"
-                                            onClick={() => updateAppointmentStatus(app.id, 'completed')}
-                                            disabled={updatingId === app.id}
-                                        >
-                                            {updatingId === app.id ? '...' : 'Complete'}
-                                        </Button>
-                                    )}
-
-                                    {app.payment_status !== 'paid' && (
-                                        <Button
-                                            variant="outline"
-                                            className="flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
-                                            onClick={() => updatePaymentStatus(app.id, 'paid')}
-                                            disabled={updatingId === app.id}
-                                        >
-                                            Mark Paid
-                                        </Button>
-                                    )}
-
-                                    {/* Action Icons */}
-                                    <div className="flex gap-1">
-                                        {app.payment_status !== 'paid' && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
-                                                onClick={() => {
-                                                    setAppointmentToDelete(app.id)
-                                                    setIsDeleteDialogOpen(true)
-                                                }}
-                                                disabled={updatingId === app.id}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                )
+                            }
+                            return (
+                                <AppointmentCard key={app.id} app={app} index={index}
+                                    updatingId={updatingId}
+                                    updateAppointmentStatus={updateAppointmentStatus}
+                                    updatePaymentStatus={updatePaymentStatus}
+                                    setAppointmentToDelete={setAppointmentToDelete}
+                                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                />
+                            )
+                        })}
                     </AnimatePresence>
+                )}
+
+                {loadingMore && (
+                    <div className="flex justify-center py-4">
+                        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                    </div>
                 )}
             </div>
 
@@ -598,6 +633,59 @@ export default function AppointmentsPage() {
                                 {updatingId === appointmentToDelete ? '...' : 'Delete'}
                             </Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                <DialogContent
+                    showCloseButton={false}
+                    className="fixed !bottom-0 !top-auto !left-0 !translate-x-0 !translate-y-0 w-full max-w-none h-[85vh] rounded-t-[2rem] border-0 p-0 gap-0 bg-[#F8F9FD] outline-none"
+                >
+                    <div className="p-6 bg-white rounded-t-[2rem] shadow-sm relative z-10">
+                        <div className="w-12 h-1 bg-slate-100 rounded-full mx-auto mb-6" />
+
+                        <div className="flex items-center gap-3 relative">
+                            <Search className="w-5 h-5 text-blue-500 absolute left-4" />
+                            <input
+                                id="sheet-search-input"
+                                value={sheetSearchQuery}
+                                onChange={(e) => setSheetSearchQuery(e.target.value)}
+                                placeholder="Search by name or address..."
+                                className="w-full h-14 pl-12 pr-4 bg-slate-50 rounded-2xl text-base font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-20">
+                        {isSheetLoading ? (
+                            <div className="flex justify-center py-10">
+                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                            </div>
+                        ) : sheetResults.length > 0 ? (
+                            sheetResults.map((app, index) => (
+                                <AppointmentCard
+                                    key={app.id}
+                                    app={app}
+                                    index={index}
+                                    updatingId={updatingId}
+                                    updateAppointmentStatus={updateAppointmentStatus}
+                                    updatePaymentStatus={updatePaymentStatus}
+                                    setAppointmentToDelete={setAppointmentToDelete}
+                                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                />
+                            ))
+                        ) : sheetSearchQuery.trim() ? (
+                            <div className="text-center py-10 text-slate-400">
+                                <p className="font-medium">No results found</p>
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 text-slate-300">
+                                <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p className="font-medium text-sm">Type to search patients</p>
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
@@ -807,6 +895,141 @@ export default function AppointmentsPage() {
                     </button>
                 </div>
             </nav>
-        </PageTransition>
+        </PageTransition >
+    )
+}
+
+function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen }: any) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ delay: index * 0.05 }}
+            layout
+            className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden group active:scale-[0.99] transition-transform"
+        >
+            {/* Background Accent */}
+            <div className={cn(
+                "absolute top-0 left-0 w-1 h-full",
+                app.status === 'completed' ? 'bg-green-500' :
+                    app.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
+            )} />
+
+            <div className="flex justify-between items-start gap-3">
+                <div className="flex gap-3">
+                    {/* Token Badge */}
+                    <div className={cn(
+                        "flex flex-col items-center justify-center w-12 h-14 rounded-2xl text-white shadow-lg shrink-0",
+                        app.status === 'completed' ? 'bg-green-500 shadow-green-100' :
+                            app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-100' :
+                                'bg-blue-500 shadow-blue-100'
+                    )}>
+                        <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">Token</span>
+                        <span className="text-xl font-black leading-none">{String(app.token_number).padStart(2, '0')}</span>
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-base font-black text-slate-800 tracking-tight">{app.patient_name}</h3>
+                            <Badge className={cn(
+                                "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border-0",
+                                app.payment_status === 'paid' ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : 'bg-amber-100 text-amber-700'
+                            )}>
+                                {app.payment_status || 'pending'}
+                            </Badge>
+                        </div>
+
+                        {/* Patient Details Grid */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <div className="flex items-center gap-1.5 text-slate-500">
+                                <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
+                                    {app.patient_age}Y • {app.patient_gender?.charAt(0)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                {app.appointment_type || 'New'}
+                            </div>
+                            <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                <Phone className="w-2.5 h-2.5" />
+                                <span>{app.patient_mobile}</span>
+                            </div>
+                            <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400 truncate max-w-[180px]">
+                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                <span className="truncate">{app.address || app.patient_address || 'No Address'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top Right Status */}
+                <div className={cn(
+                    "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                    app.status === 'confirmed' || app.status === 'booked' ? 'bg-blue-50 text-blue-600' :
+                        app.status === 'ongoing' ? 'bg-orange-50 text-orange-600' :
+                            app.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
+                )}>
+                    {app.status}
+                </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-slate-50 my-4" />
+
+            {/* Actions Container */}
+            <div className="flex gap-2">
+                {(app.status === 'confirmed' || app.status === 'booked') && (
+                    <Button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-70"
+                        onClick={() => updateAppointmentStatus(app.id, 'ongoing')}
+                        disabled={updatingId === app.id}
+                    >
+                        {updatingId === app.id ? '...' : 'Check-in'}
+                    </Button>
+                )}
+
+                {app.status === 'ongoing' && (
+                    <Button
+                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-70"
+                        onClick={() => updateAppointmentStatus(app.id, 'completed')}
+                        disabled={updatingId === app.id}
+                    >
+                        {updatingId === app.id ? '...' : 'Complete'}
+                    </Button>
+                )}
+
+                {app.payment_status !== 'paid' && (
+                    <Button
+                        variant="outline"
+                        className="flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
+                        onClick={() => updatePaymentStatus(app.id, 'paid')}
+                        disabled={updatingId === app.id}
+                    >
+                        Mark Paid
+                    </Button>
+                )}
+
+                {/* Action Icons */}
+                <div className="flex gap-1">
+                    {app.payment_status !== 'paid' && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
+                            onClick={() => {
+                                setAppointmentToDelete(app.id)
+                                setIsDeleteDialogOpen(true)
+                            }}
+                            disabled={updatingId === app.id}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </motion.div>
     )
 }
