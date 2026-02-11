@@ -642,23 +642,23 @@ export default function AppointmentsPage() {
                     showCloseButton={false}
                     className="fixed !bottom-0 !top-auto !left-0 !translate-x-0 !translate-y-0 w-full max-w-none h-[80vh] rounded-t-[2rem] border-0 p-0 gap-0 bg-[#F8F9FD] outline-none"
                 >
-                    <div className="py-3 px-2 rounded-t-[2rem] shadow-sm relative z-10">
-                        <div className="w-12  bg-slate-100 rounded-full mx-auto" />
+                    <div className="pt-5 pb-1 px-6 rounded-t-[2rem] shadow-sm relative z-10">
+                        <div className="w-12 h-1.5 bg-slate-200/50 rounded-full mx-auto mb-4" />
 
                         <div className="flex items-center gap-3 relative">
-                            <Search className="w-5 h-0 text-blue-500 absolute left-4" />
+                            <Search className="w-5 h-5 text-blue-500 absolute left-4" />
                             <input
                                 id="sheet-search-input"
                                 value={sheetSearchQuery}
                                 onChange={(e) => setSheetSearchQuery(e.target.value)}
-                                placeholder="Search by name or address..."
-                                className="w-full h-14 pl-12 pr-4 bg-slate-50 rounded-2xl text-base font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                                placeholder="Search name, address or mobile..."
+                                className="w-full h-14 pl-12 pr-4 bg-white border border-slate-100 rounded-2xl text-base font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100/50 transition-all shadow-sm"
                                 autoFocus
                             />
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-20">
+                    <div className="flex-1 overflow-y-auto px-6 pt-2 space-y-4 pb-20">
                         {isSheetLoading ? (
                             <div className="flex justify-center py-10">
                                 <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -683,7 +683,7 @@ export default function AppointmentsPage() {
                         ) : (
                             <div className="text-center py-10 text-slate-300">
                                 <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                <p className="font-medium text-sm">Type to search patients</p>
+                                <p className="font-medium text-sm">Search by name or mobile number</p>
                             </div>
                         )}
                     </div>

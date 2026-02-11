@@ -38,7 +38,7 @@ export async function getAppointments(params: GetAppointmentsParams) {
         // Apply search filter if query exists
         if (searchQuery && searchQuery.trim()) {
             const term = `%${searchQuery.trim()}%`
-            query = query.or(`patient_name.ilike.${term},address.ilike.${term}`)
+            query = query.or(`patient_name.ilike.${term},address.ilike.${term},patient_mobile.ilike.${term}`)
         }
 
         // Apply status filter
@@ -100,7 +100,7 @@ export async function getAppointments(params: GetAppointmentsParams) {
             // If I search "Rajeev", and he's in "Completed", I want "Completed (1)".
             if (searchQuery && searchQuery.trim()) {
                 const term = `%${searchQuery.trim()}%`
-                q = q.or(`patient_name.ilike.${term},address.ilike.${term}`)
+                q = q.or(`patient_name.ilike.${term},address.ilike.${term},patient_mobile.ilike.${term}`)
             }
 
             return q.in('status', statuses)
