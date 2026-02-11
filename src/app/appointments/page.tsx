@@ -934,9 +934,9 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                             <h3 className="text-base font-black text-slate-800 tracking-tight">{app.patient_name}</h3>
                             <Badge className={cn(
                                 "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border-0",
-                                app.payment_status === 'paid' ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-100' : 'bg-amber-100 text-amber-700'
+                                app.appointment_type === 'Emergency' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white shadow-sm shadow-blue-100'
                             )}>
-                                {app.payment_status || 'pending'}
+                                {app.appointment_type || 'New'}
                             </Badge>
                         </div>
 
@@ -946,10 +946,6 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                                 <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
                                     {app.patient_age}Y • {app.patient_gender?.charAt(0)}
                                 </span>
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                {app.appointment_type || 'New'}
                             </div>
                             <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
                                 <Phone className="w-2.5 h-2.5" />
@@ -966,11 +962,9 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                 {/* Top Right Status */}
                 <div className={cn(
                     "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
-                    app.status === 'confirmed' || app.status === 'booked' ? 'bg-blue-50 text-blue-600' :
-                        app.status === 'ongoing' ? 'bg-orange-50 text-orange-600' :
-                            app.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
+                    app.booking_source === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'
                 )}>
-                    {app.status}
+                    {app.booking_source || 'walk-in'}
                 </div>
             </div>
 
