@@ -147,19 +147,23 @@ export default function DashboardPage() {
             const walkIns = appointments?.filter(a => a.appointment_type === 'walkin').length || 0
             const completed = appointments?.filter(a => a.status === 'completed').length || 0
 
-            const nextAppointments = appointments
-                ?.filter(a => a.status !== 'completed' && a.status !== 'cancelled')
-                .slice(0, 3)
-                .map(a => ({
-                    id: a.id,
-                    token_number: a.token_number,
-                    patient_name: a.patient_name,
-                    appointment_time: a.appointment_time || 'Walk-in',
-                    status: a.status,
-                    visit_reason: a.visit_reason,
-                    booking_source: a.booking_source,
-                    payment_status: a.payment_status
-                })) || []
+            const activeAppointments = appointments?.filter(a => a.status !== 'completed' && a.status !== 'cancelled') || []
+            const ongoingIndex = activeAppointments.findIndex(a => a.status === 'ongoing')
+
+            // Show ongoing + next, or just next 2 if no ongoing
+            const nextAppointments = (ongoingIndex !== -1
+                ? activeAppointments.slice(ongoingIndex, ongoingIndex + 2)
+                : activeAppointments.slice(0, 2)
+            ).map(a => ({
+                id: a.id,
+                token_number: a.token_number,
+                patient_name: a.patient_name,
+                appointment_time: a.appointment_time || 'Walk-in',
+                status: a.status,
+                visit_reason: a.visit_reason,
+                booking_source: a.booking_source,
+                payment_status: a.payment_status
+            }))
 
             setDashboardData({
                 totalAppointments,
@@ -409,7 +413,7 @@ export default function DashboardPage() {
                                                     </h3>
                                                     <div className="flex items-center gap-2">
                                                         <p className="text-[10px] text-slate-400 font-bold">
-                                                            T-{String(appointment.token_number).padStart(2, '0')} • {appointment.appointment_type || 'New'}
+                                                            T-{String(appointment.token_number).padStart(2, '0')} • {appointment.status === 'ongoing' ? 'Ongoing' : 'Next'}
                                                         </p>
                                                     </div>
                                                 </div>
