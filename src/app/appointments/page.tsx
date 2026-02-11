@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { useToast } from '@/hooks/use-toast'
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { getAppointments } from '@/app/actions/appointments'
@@ -36,6 +37,7 @@ interface Appointment {
 }
 
 export default function AppointmentsPage() {
+    const { t } = useLanguage()
     const router = useRouter()
     const supabase = createClient()
     const [selectedDate, setSelectedDate] = useState(new Date())
@@ -58,6 +60,7 @@ export default function AppointmentsPage() {
     const [totalCount, setTotalCount] = useState(0)
     const observer = useRef<IntersectionObserver | null>(null)
     const [clinicId, setClinicId] = useState<string | null>(null)
+    const [userRole, setUserRole] = useState<string | null>(null)
     const [doctorImage, setDoctorImage] = useState<string | null>(null)
     const [userName, setUserName] = useState('')
     const [showAddDialog, setShowAddDialog] = useState(false)
@@ -147,12 +150,13 @@ export default function AppointmentsPage() {
 
         const { data: userData } = await supabase
             .from('users')
-            .select('clinic_id, clinics(clinic_owner)')
+            .select('clinic_id, role, clinics(clinic_owner)')
             .eq('id', session.user.id)
             .single()
 
         if (userData) {
             setClinicId(userData.clinic_id)
+            setUserRole(userData.role)
             if (userData.clinics) {
                 const clinic = Array.isArray(userData.clinics) ? userData.clinics[0] : userData.clinics
                 setDoctorImage((clinic as any)?.clinic_owner || null)
@@ -494,7 +498,7 @@ export default function AppointmentsPage() {
                             )}
                         </motion.div>
                         {/* <div className="min-w-0">
-                            <h1 className="text-xs font-bold text-slate-800 truncate">Appointments</h1>
+                            <h1 className="text-xl font-black text-slate-800 tracking-tight">{t('appointments')}</h1>
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 truncate">
                                 {selectedDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
@@ -538,7 +542,7 @@ export default function AppointmentsPage() {
                                     : "text-slate-400 hover:text-slate-500"
                             )}
                         >
-                            {tab === 'new' ? 'New' : tab === 'ongoing' ? 'Ongoing' : 'Completed'}
+                            {tab === 'new' ? t('tabNew') : tab === 'ongoing' ? t('tabOngoing') : t('tabCompleted')}
                             <span className={cn(
                                 "ml-1.5 px-1.5 py-0.5 rounded-md text-[9px] min-w-[20px] inline-flex items-center justify-center",
                                 activeTab === tab ? "bg-blue-50 text-blue-600" : "bg-slate-200 text-slate-500"
@@ -564,7 +568,7 @@ export default function AppointmentsPage() {
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Calendar className="w-8 h-8 text-slate-200" />
                         </div>
-                        <p className="text-slate-400 font-medium text-sm">No {activeTab} appointments</p>
+                        <p className="text-slate-400 font-medium text-sm">{t('noAppointments').replace('{tab}', t(activeTab === 'new' ? 'tabNew' : activeTab === 'ongoing' ? 'tabOngoing' : 'tabCompleted'))}</p>
                     </div>
                 ) : (
                     <AnimatePresence mode='popLayout'>
@@ -575,6 +579,7 @@ export default function AppointmentsPage() {
                                     <div ref={lastAppointmentElementRef} key={app.id}>
                                         <AppointmentCard app={app} index={index}
                                             updatingId={updatingId}
+                                            userRole={userRole}
                                             updateAppointmentStatus={updateAppointmentStatus}
                                             updatePaymentStatus={updatePaymentStatus}
                                             setAppointmentToDelete={setAppointmentToDelete}
@@ -586,6 +591,7 @@ export default function AppointmentsPage() {
                             return (
                                 <AppointmentCard key={app.id} app={app} index={index}
                                     updatingId={updatingId}
+                                    userRole={userRole}
                                     updateAppointmentStatus={updateAppointmentStatus}
                                     updatePaymentStatus={updatePaymentStatus}
                                     setAppointmentToDelete={setAppointmentToDelete}
@@ -612,9 +618,9 @@ export default function AppointmentsPage() {
                             <AlertCircle className="w-8 h-8 text-red-500" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-lg font-black text-slate-800">Delete Appointment?</h3>
+                            <h3 className="text-lg font-black text-slate-800">{t('deleteAppointmentTitle')}</h3>
                             <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                Are you sure you want to remove this appointment? This action cannot be undone.
+                                {t('deleteAppointmentDescription')}
                             </p>
                         </div>
                         <div className="flex gap-3 w-full pt-2">
@@ -623,14 +629,14 @@ export default function AppointmentsPage() {
                                 className="flex-1 h-12 rounded-xl border-slate-100 font-bold text-slate-500"
                                 onClick={() => setIsDeleteDialogOpen(false)}
                             >
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button
                                 className="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 font-bold shadow-lg shadow-red-100"
                                 onClick={() => appointmentToDelete && deleteAppointment(appointmentToDelete)}
                                 disabled={updatingId === appointmentToDelete}
                             >
-                                {updatingId === appointmentToDelete ? '...' : 'Delete'}
+                                {updatingId === appointmentToDelete ? '...' : t('delete')}
                             </Button>
                         </div>
                     </div>
@@ -651,7 +657,7 @@ export default function AppointmentsPage() {
                                 id="sheet-search-input"
                                 value={sheetSearchQuery}
                                 onChange={(e) => setSheetSearchQuery(e.target.value)}
-                                placeholder="Search name, address or mobile..."
+                                placeholder={t('searchPlaceholder')}
                                 className="w-full h-14 pl-12 pr-4 bg-white border border-slate-100 rounded-2xl text-base font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100/50 transition-all shadow-sm"
                                 autoFocus
                             />
@@ -670,6 +676,7 @@ export default function AppointmentsPage() {
                                     app={app}
                                     index={index}
                                     updatingId={updatingId}
+                                    userRole={userRole}
                                     updateAppointmentStatus={updateAppointmentStatus}
                                     updatePaymentStatus={updatePaymentStatus}
                                     setAppointmentToDelete={setAppointmentToDelete}
@@ -678,12 +685,12 @@ export default function AppointmentsPage() {
                             ))
                         ) : sheetSearchQuery.trim() ? (
                             <div className="text-center py-10 text-slate-400">
-                                <p className="font-medium">No results found</p>
+                                <p className="font-medium">{t('noResultsFound') || 'No results found'}</p>
                             </div>
                         ) : (
                             <div className="text-center py-10 text-slate-300">
                                 <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                <p className="font-medium text-sm">Search by name or mobile number</p>
+                                <p className="font-medium text-sm">{t('searchInstruction') || 'Search by name or mobile number'}</p>
                             </div>
                         )}
                     </div>
@@ -707,11 +714,11 @@ export default function AppointmentsPage() {
                 </DialogTrigger>
                 <DialogContent className="max-w-md bg-white rounded-3xl p-6 border-0 shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-slate-800">Add New Patient</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-slate-800">{t('addNewPatient')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Patient Name</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('patientName')}</Label>
                             <Input
                                 value={newAppointment.patient_name}
                                 onChange={(e) => {
@@ -719,15 +726,14 @@ export default function AppointmentsPage() {
                                     if (errors.patient_name) setErrors({ ...errors, patient_name: '' })
                                 }}
                                 className={cn(
-                                    "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
                                     errors.patient_name && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                 )}
-                                placeholder="Ex. Rajesh Kumar"
+                                placeholder={t('patientNamePlaceholder')}
                             />
                             {errors.patient_name && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_name}</p>}
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Address (Short)</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('address')}</Label>
                             <Input
                                 value={newAppointment.patient_address}
                                 onChange={(e) => {
@@ -735,16 +741,15 @@ export default function AppointmentsPage() {
                                     if (errors.patient_address) setErrors({ ...errors, patient_address: '' })
                                 }}
                                 className={cn(
-                                    "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
                                     errors.patient_address && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                 )}
-                                placeholder="Ex. Sector 44, Gurgaon"
+                                placeholder={t('addressPlaceholder')}
                             />
                             {errors.patient_address && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_address}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Appointment Date</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('appointmentDate')}</Label>
                                 <Input
                                     type="date"
                                     value={newAppointment.appointment_date}
@@ -759,7 +764,7 @@ export default function AppointmentsPage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Mobile Number</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('mobileNumber')}</Label>
                                 <Input
                                     value={newAppointment.patient_mobile}
                                     onChange={(e) => {
@@ -771,7 +776,7 @@ export default function AppointmentsPage() {
                                         "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
                                         errors.patient_mobile && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                     )}
-                                    placeholder="10-digit number"
+                                    placeholder={t('mobileNumberPlaceholder')}
                                     maxLength={10}
                                 />
                                 {errors.patient_mobile && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_mobile}</p>}
@@ -779,7 +784,7 @@ export default function AppointmentsPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Age</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('age')}</Label>
                                 <Input
                                     type="number"
                                     value={newAppointment.patient_age}
@@ -791,12 +796,12 @@ export default function AppointmentsPage() {
                                         "h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500",
                                         errors.patient_age && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                     )}
-                                    placeholder="Age"
+                                    placeholder={t('agePlaceholder')}
                                 />
                                 {errors.patient_age && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_age}</p>}
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Gender</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('gender')}</Label>
                                 <select
                                     value={newAppointment.patient_gender}
                                     onChange={(e) => {
@@ -808,16 +813,16 @@ export default function AppointmentsPage() {
                                         errors.patient_gender && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                     )}
                                 >
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Male">{t('male')}</option>
+                                    <option value="Female">{t('female')}</option>
+                                    <option value="Other">{t('other')}</option>
                                 </select>
                                 {errors.patient_gender && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.patient_gender}</p>}
                             </div>
                         </div>
                         <div className="space-y-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Appointment Type</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('appointmentType')}</Label>
                                 <select
                                     value={newAppointment.appointment_type}
                                     onChange={(e) => {
@@ -829,9 +834,9 @@ export default function AppointmentsPage() {
                                         errors.appointment_type && "border-red-500 ring-1 ring-red-500 bg-red-50/10"
                                     )}
                                 >
-                                    <option value="New">New Consultation</option>
-                                    <option value="Follow-up">Follow-up</option>
-                                    <option value="Other">Other</option>
+                                    <option value="New">{t('newConsultation')}</option>
+                                    <option value="Follow-up">{t('followUp')}</option>
+                                    <option value="Other">{t('other')}</option>
                                 </select>
                                 {errors.appointment_type && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.appointment_type}</p>}
                             </div>
@@ -844,9 +849,9 @@ export default function AppointmentsPage() {
                             {isAdding ? (
                                 <div className="flex items-center gap-2">
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Creating Appointment...</span>
+                                    <span>{t('creating')}</span>
                                 </div>
-                            ) : 'Add Appointment'}
+                            ) : t('addAppointment')}
                         </Button>
                     </div>
                 </DialogContent>
@@ -865,7 +870,7 @@ export default function AppointmentsPage() {
                         )}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Home</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('home')}</span>
                     </button>
 
                     <button
@@ -878,7 +883,7 @@ export default function AppointmentsPage() {
                         )}>
                             <Calendar className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-blue-600">Schedule</span>
+                        <span className="text-[10px] font-black text-blue-600">{t('schedule')}</span>
                     </button>
 
                     <button
@@ -891,7 +896,7 @@ export default function AppointmentsPage() {
                         )}>
                             <Settings className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Settings</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('settings')}</span>
                     </button>
                 </div>
             </nav>
@@ -899,7 +904,8 @@ export default function AppointmentsPage() {
     )
 }
 
-function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen }: any) {
+function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen }: any) {
+    const { t } = useLanguage()
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -925,7 +931,7 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                             app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-100' :
                                 'bg-blue-500 shadow-blue-100'
                     )}>
-                        <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">Token</span>
+                        <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">{t('token')}</span>
                         <span className="text-xl font-black leading-none">{String(app.token_number).padStart(2, '0')}</span>
                     </div>
 
@@ -944,7 +950,7 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                             <div className="flex items-center gap-1.5 text-slate-500">
                                 <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
-                                    {app.patient_age}Y • {app.patient_gender?.charAt(0)}
+                                    {app.patient_age}{t('ageYearsAbbr')} • {app.patient_gender?.charAt(0)}
                                 </span>
                             </div>
                             <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
@@ -953,7 +959,7 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                             </div>
                             <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400 truncate max-w-[180px]">
                                 <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">{app.address || app.patient_address || 'No Address'}</span>
+                                <span className="truncate">{app.address || app.patient_address || t('noAddress')}</span>
                             </div>
                         </div>
                     </div>
@@ -964,7 +970,7 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                     "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
                     app.booking_source === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'
                 )}>
-                    {app.booking_source || 'walk-in'}
+                    {app.booking_source === 'online' ? t('online') : t('walkIn')}
                 </div>
             </div>
 
@@ -979,7 +985,7 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                         onClick={() => updateAppointmentStatus(app.id, 'ongoing')}
                         disabled={updatingId === app.id}
                     >
-                        {updatingId === app.id ? '...' : 'Check-in'}
+                        {updatingId === app.id ? '...' : t('checkIn')}
                     </Button>
                 )}
 
@@ -989,18 +995,21 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                         onClick={() => updateAppointmentStatus(app.id, 'completed')}
                         disabled={updatingId === app.id}
                     >
-                        {updatingId === app.id ? '...' : 'Complete'}
+                        {updatingId === app.id ? '...' : t('complete')}
                     </Button>
                 )}
 
                 {app.payment_status !== 'paid' && (
                     <Button
                         variant="outline"
-                        className="flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
-                        onClick={() => updatePaymentStatus(app.id, 'paid')}
-                        disabled={updatingId === app.id}
+                        className={cn(
+                            "flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95",
+                            userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                        )}
+                        onClick={() => userRole !== 'staff' && updatePaymentStatus(app.id, 'paid')}
+                        disabled={updatingId === app.id || userRole === 'staff'}
                     >
-                        Mark Paid
+                        {t('markPaid')}
                     </Button>
                 )}
 
@@ -1010,12 +1019,16 @@ function AppointmentCard({ app, index, updatingId, updateAppointmentStatus, upda
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
                             onClick={() => {
+                                if (userRole === 'staff') return
                                 setAppointmentToDelete(app.id)
                                 setIsDeleteDialogOpen(true)
                             }}
-                            disabled={updatingId === app.id}
+                            className={cn(
+                                "h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50",
+                                userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                            )}
+                            disabled={updatingId === app.id || userRole === 'staff'}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

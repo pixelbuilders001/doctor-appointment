@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Lock, Eye, EyeOff, Building } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export default function LoginPage() {
     const [isSignUp, setIsSignUp] = useState(false)
     const router = useRouter()
     const supabase = createClient()
+    const { t } = useLanguage()
     const { toast } = useToast()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -153,6 +155,14 @@ export default function LoginPage() {
                             })
                         }
                     }
+
+                    // Check if user is active
+                    if (userData && userData.is_active === false) {
+                        await supabase.auth.signOut()
+                        setError(t('accountDisabled') || 'Your account is disabled. Please contact the administrator.')
+                        setLoading(false)
+                        return
+                    }
                 }
 
                 router.push('/dashboard')
@@ -177,9 +187,9 @@ export default function LoginPage() {
                     <div>
                         <CardTitle className="text-3xl font-bold text-gray-900">ClinicFlow</CardTitle>
                         <CardDescription className="text-base mt-2">
-                            {isSignUp ? 'Create your account' : 'Welcome back'}
+                            {isSignUp ? t('createYourAccount') : t('welcomeBack')}
                             <br />
-                            {isSignUp ? 'Start managing your clinic' : 'Sign in to manage your clinic'}
+                            {isSignUp ? t('startManaging') : t('signInToManage')}
                         </CardDescription>
                     </div>
                 </CardHeader>
@@ -194,7 +204,7 @@ export default function LoginPage() {
                         {isSignUp && (
                             <div className="space-y-2">
                                 <Label htmlFor="clinicName" className="text-sm font-medium text-gray-700">
-                                    Clinic Name
+                                    {t('profile')}
                                 </Label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -216,7 +226,7 @@ export default function LoginPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                                Email Address
+                                {t('email')}
                             </Label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -237,7 +247,7 @@ export default function LoginPage() {
 
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                                Password
+                                {t('password')}
                             </Label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -273,7 +283,7 @@ export default function LoginPage() {
                             className="w-full h-12 text-base bg-blue-500 hover:bg-blue-600"
                             disabled={loading || !email || password.length < 6}
                         >
-                            {loading ? (isSignUp ? 'Creating Account...' : 'Signing In...') : (isSignUp ? 'Create Account' : 'Sign In')}
+                            {loading ? (isSignUp ? t('creating') : t('loggingIn')) : (isSignUp ? t('createAccount') : t('signIn'))}
                         </Button>
 
                         <div className="text-center">
@@ -285,13 +295,13 @@ export default function LoginPage() {
                                 }}
                                 className="text-sm text-blue-500 hover:text-blue-600"
                             >
-                                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                                {isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount')}
                             </button>
                         </div>
 
                         {!isSignUp && (
                             <div className="flex justify-center gap-4 text-sm text-gray-600">
-                                <a href="#" className="hover:text-blue-500">Forgot password?</a>
+                                <a href="#" className="hover:text-blue-500">{t('forgotPassword')}</a>
                                 <span>•</span>
                                 <a href="#" className="hover:text-blue-500">Need help?</a>
                             </div>

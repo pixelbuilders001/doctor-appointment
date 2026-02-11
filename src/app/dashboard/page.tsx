@@ -12,6 +12,7 @@ import ModernLoader from '@/components/ModernLoader'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Appointment {
     id: string
@@ -36,6 +37,7 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+    const { t } = useLanguage()
     const router = useRouter()
     const supabase = createClient()
     const [clinicStatus, setClinicStatus] = useState<'available' | 'busy' | 'closed'>('available')
@@ -53,6 +55,7 @@ export default function DashboardPage() {
     const [clinicName, setClinicName] = useState('Sharma Clinic')
     const [doctorImage, setDoctorImage] = useState<string | null>(null)
     const [userName, setUserName] = useState('')
+    const [userRole, setUserRole] = useState<string | null>(null)
     const [clinicSlug, setClinicSlug] = useState<string>('')
     const [publicUrl, setPublicUrl] = useState<string>('')
 
@@ -104,12 +107,13 @@ export default function DashboardPage() {
 
         const { data: userData } = await supabase
             .from('users')
-            .select('clinic_id, clinics(name, doctor_name, clinic_status, slug, clinic_owner)')
+            .select('clinic_id, role, clinics(name, doctor_name, clinic_status, slug, clinic_owner)')
             .eq('id', session.user.id)
             .single()
 
         if (userData) {
             setClinicId(userData.clinic_id)
+            setUserRole(userData.role)
             if (userData.clinics) {
                 const clinic = Array.isArray(userData.clinics) ? userData.clinics[0] : userData.clinics
                 const clinicData = clinic as any
@@ -265,9 +269,9 @@ export default function DashboardPage() {
                         </motion.div>
                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
                     </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-slate-800 leading-tight">{doctorName}</h1>
-                        <p className="text-xs text-slate-500 font-medium">{clinicName}</p>
+                    <div className="space-y-0.5">
+                        <h1 className="text-xl font-black text-slate-800 tracking-tight">{clinicName}</h1>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{doctorName}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
@@ -277,6 +281,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="px-6 py-6 space-y-7 max-w-lg mx-auto">
+
 
                 {/* Clinic Status - Segmented Control */}
                 <motion.div
@@ -302,7 +307,7 @@ export default function DashboardPage() {
                                 {isStatusLoading && clinicStatus === status ? (
                                     <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                 ) : null}
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                                {status === 'available' ? t('available') : status === 'busy' ? t('busy') : t('closed')}
                             </button>
                         ))}
                     </div>
@@ -315,19 +320,19 @@ export default function DashboardPage() {
                     transition={{ delay: 0.2 }}
                     className="space-y-3"
                 >
-                    <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Today's Summary</h2>
+                    <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">{t('todaysSummary')}</h2>
                     <div className="flex gap-4">
                         <motion.div whileHover={{ y: -5 }} className="flex-1 bg-white p-4 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-50 flex flex-col items-center justify-center gap-1 aspect-square">
                             <span className="text-3xl font-extrabold text-blue-500">{dashboardData.totalAppointments}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">TOTAL</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{t('total')}</span>
                         </motion.div>
                         <motion.div whileHover={{ y: -5 }} className="flex-1 bg-white p-4 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-50 flex flex-col items-center justify-center gap-1 aspect-square">
                             <span className="text-3xl font-extrabold text-slate-700">{dashboardData.walkIns}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">WALK-INS</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{t('walkIns')}</span>
                         </motion.div>
                         <motion.div whileHover={{ y: -5 }} className="flex-1 bg-white p-4 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-50 flex flex-col items-center justify-center gap-1 aspect-square">
                             <span className="text-3xl font-extrabold text-green-500">{dashboardData.completed}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">DONE</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{t('done')}</span>
                         </motion.div>
                     </div>
                 </motion.div>
@@ -346,7 +351,7 @@ export default function DashboardPage() {
                         <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center mr-3">
                             <Plus className="h-4 w-4 text-white" />
                         </div>
-                        Add New Appointment
+                        {t('addNewAppointment')}
                     </Button>
 
                     <Button
@@ -354,7 +359,7 @@ export default function DashboardPage() {
                         className="w-full h-14 bg-white border-2 border-slate-100 hover:bg-slate-50 text-blue-600 rounded-2xl text-base font-bold tracking-wide transition-transform active:scale-95"
                         onClick={() => router.push('/appointments')}
                     >
-                        View All Appointments
+                        {t('viewAll')}
                     </Button>
                 </motion.div>
 
@@ -365,20 +370,20 @@ export default function DashboardPage() {
                     transition={{ delay: 0.4 }}
                     className="space-y-3"
                 >
-                    <div className="flex items-center justify-between px-1">
-                        <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Next in Queue</h2>
-                        <button
-                            onClick={() => router.push('/appointments')}
-                            className="text-xs font-bold text-blue-600 hover:text-blue-700"
-                        >
-                            View All
-                        </button>
+                    <div className="flex items-center justify-between px-1 mb-4">
+                        <h2 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-blue-500" />
+                            {t('nextInQueue')}
+                        </h2>
+                        <Button variant="ghost" size="sm" className="text-[10px] font-black text-blue-600 hover:bg-blue-50" onClick={() => router.push('/appointments')}>
+                            {t('viewAll')}
+                        </Button>
                     </div>
 
                     <div className="space-y-3">
                         {dashboardData.nextAppointments.length === 0 ? (
                             <div className="bg-white p-8 rounded-3xl text-center shadow-sm border border-slate-50">
-                                <p className="text-slate-400 font-medium">No upcoming appointments</p>
+                                <p className="text-slate-400 font-medium">{t('noUpcomingAppointments')}</p>
                             </div>
                         ) : (
                             <AnimatePresence>
@@ -413,7 +418,7 @@ export default function DashboardPage() {
                                                     </h3>
                                                     <div className="flex items-center gap-2">
                                                         <p className="text-[10px] text-slate-400 font-bold">
-                                                            T-{String(appointment.token_number).padStart(2, '0')} • {appointment.status === 'ongoing' ? 'Ongoing' : 'Next'}
+                                                            T-{String(appointment.token_number).padStart(2, '0')} • {appointment.status === 'ongoing' ? t('ongoing') : t('next')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -424,11 +429,14 @@ export default function DashboardPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        onClick={() => updatePaymentStatus(appointment.id, 'paid')}
-                                                        className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9"
-                                                        disabled={updatingId === appointment.id}
+                                                        onClick={() => userRole !== 'staff' && updatePaymentStatus(appointment.id, 'paid')}
+                                                        className={cn(
+                                                            "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9",
+                                                            userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                                                        )}
+                                                        disabled={updatingId === appointment.id || userRole === 'staff'}
                                                     >
-                                                        {updatingId === appointment.id ? '...' : 'PAID'}
+                                                        {updatingId === appointment.id ? '...' : t('paid')}
                                                     </Button>
                                                 )}
 
@@ -509,7 +517,7 @@ export default function DashboardPage() {
                         )}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
                         </div>
-                        <span className="text-[10px] font-black text-blue-600">Home</span>
+                        <span className="text-[10px] font-black text-blue-600">{t('home')}</span>
                     </button>
 
                     {/* <button
@@ -534,7 +542,7 @@ export default function DashboardPage() {
                         )}>
                             <Calendar className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Schedule</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('schedule')}</span>
                     </button>
                     <button
                         onClick={() => router.push('/settings')}
@@ -546,7 +554,7 @@ export default function DashboardPage() {
                         )}>
                             <Settings className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Settings</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('settings')}</span>
                     </button>
 
                     {/* <button

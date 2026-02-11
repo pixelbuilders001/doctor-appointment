@@ -7,17 +7,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings, ShieldCheck, Plus, Trash2, Users, Lock, Key, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, LogOut, Save, Building, Clock, Bell, User, Calendar, Home, Settings, ShieldCheck, Plus, Trash2, Users, Lock, Key, Eye, EyeOff, Copy, CheckCircle2, Languages } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getClinicStaff, createStaffUser, deleteStaffUser } from '@/app/actions/staff'
+import { getClinicStaff, createStaffUser, deleteStaffUser, updateStaffStatus } from '@/app/actions/staff'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function SettingsPage() {
+    const { t, language, setLanguage } = useLanguage()
     const router = useRouter()
     const supabase = createClient()
     const { toast } = useToast()
@@ -249,6 +251,17 @@ export default function SettingsPage() {
         }
     }
 
+    const handleToggleStaffStatus = async (id: string, currentStatus: boolean) => {
+        try {
+            const res = await updateStaffStatus(id, !currentStatus)
+            if (res.error) throw new Error(res.error)
+            setStaffList(staffList.map(s => s.id === id ? { ...s, is_active: !currentStatus } : s))
+            toast({ title: !currentStatus ? "Staff Activated" : "Staff Deactivated" })
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" })
+        }
+    }
+
     const handleDeleteStaff = async (id: string) => {
         if (!confirm('Are you sure you want to remove this staff member?')) return
         try {
@@ -309,7 +322,7 @@ export default function SettingsPage() {
                     >
                         <ChevronLeft className="h-6 w-6" />
                     </Button>
-                    <h1 className="text-xl font-bold text-slate-800">Settings</h1>
+                    <h1 className="text-xl font-bold text-slate-800">{t('settings')}</h1>
                 </div>
                 {isReadOnly && (
                     <div className="mx-6 mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
@@ -317,8 +330,8 @@ export default function SettingsPage() {
                             <ShieldCheck className="w-5 h-5 text-amber-600" />
                         </div>
                         <div className="space-y-0.5">
-                            <p className="text-sm font-black text-amber-900 leading-none">View-Only Mode</p>
-                            <p className="text-[10px] font-bold text-amber-700/80">Only doctors can modify clinic settings.</p>
+                            <p className="text-sm font-black text-amber-900 leading-none">{t('viewOnlyMode')}</p>
+                            <p className="text-[10px] font-bold text-amber-700/80">{t('adminAccess')}</p>
                         </div>
                     </div>
                 )}
@@ -335,12 +348,12 @@ export default function SettingsPage() {
                 >
                     <div className="flex items-center gap-2 px-1">
                         <Building className="h-4 w-4 text-blue-500" />
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinic Profile</h2>
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('profile')}</h2>
                     </div>
 
                     <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 space-y-5">
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Clinic Name</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('clinicName')}</Label>
                             <Input
                                 value={clinicData.name}
                                 onChange={(e) => setClinicData({ ...clinicData, name: e.target.value })}
@@ -349,7 +362,7 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Doctor Name</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('doctorName')}</Label>
                             <Input
                                 value={clinicData.doctor_name}
                                 onChange={(e) => setClinicData({ ...clinicData, doctor_name: e.target.value })}
@@ -358,17 +371,17 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Specialization</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('specialization')}</Label>
                             <Input
                                 value={clinicData.specialization}
                                 onChange={(e) => setClinicData({ ...clinicData, specialization: e.target.value })}
-                                placeholder="e.g. Cardiologist, Dermatologist"
+                                placeholder={t('specializationPlaceholder')}
                                 disabled={isReadOnly}
                                 className="h-12 bg-slate-50 border-0 rounded-xl font-medium focus-visible:ring-blue-500 disabled:opacity-70"
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-500 uppercase">Address</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('address')}</Label>
                             <Textarea
                                 value={clinicData.address}
                                 onChange={(e) => setClinicData({ ...clinicData, address: e.target.value })}
@@ -380,7 +393,7 @@ export default function SettingsPage() {
                         {/* Visuals */}
                         <div className="grid grid-cols-1 gap-5 pt-2">
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Clinic Banner Image</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('clinicBannerImage')}</Label>
                                 <div className="flex flex-col gap-3">
                                     <div
                                         onClick={() => !isReadOnly && document.getElementById('banner-upload')?.click()}
@@ -394,7 +407,7 @@ export default function SettingsPage() {
                                         ) : (
                                             <div className="flex flex-col items-center gap-2 text-slate-400">
                                                 <Building className="w-8 h-8" />
-                                                <span className="text-xs font-bold uppercase tracking-wider">Upload Banner</span>
+                                                <span className="text-xs font-bold uppercase tracking-wider">{t('uploadBanner') || 'Upload Banner'}</span>
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center group">
@@ -429,7 +442,7 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Doctor/Owner Profile Image</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('doctorProfileImage') || 'Doctor/Owner Profile Image'}</Label>
                                 <div className="flex items-center gap-6">
                                     <div
                                         onClick={() => !isReadOnly && document.getElementById('owner-upload')?.click()}
@@ -444,17 +457,17 @@ export default function SettingsPage() {
                                             <User className="w-8 h-8 text-slate-300" />
                                         )}
                                     </div>
-                                    <div className="space-y-1.5 flex-1">
+                                    {/* <div className="space-y-1.5 flex-1">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             className="h-10 rounded-xl px-4 font-bold text-slate-600 border-slate-200"
                                             onClick={() => document.getElementById('owner-upload')?.click()}
                                         >
-                                            Change Photo
+                                            {t('save')}
                                         </Button>
                                         <p className="text-[10px] text-slate-400 font-medium">Recommended: Square image (800x800)</p>
-                                    </div>
+                                    </div> */}
                                     <input
                                         id="owner-upload"
                                         type="file"
@@ -491,13 +504,13 @@ export default function SettingsPage() {
                 >
                     <div className="flex items-center gap-2 px-1">
                         <User className="h-4 w-4 text-blue-500" />
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Consultation</h2>
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('consultation')}</h2>
                     </div>
 
                     <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 space-y-5">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Fee (₹)</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('fee')} (₹)</Label>
                                 <Input
                                     type="number"
                                     value={clinicData.consultation_fee}
@@ -507,17 +520,17 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Slot (Mins)</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('slot')} (Mins)</Label>
                                 <select
                                     value={clinicData.slot_duration}
                                     onChange={(e) => setClinicData({ ...clinicData, slot_duration: parseInt(e.target.value) })}
                                     disabled={isReadOnly}
                                     className="w-full h-12 px-3 bg-slate-50 border-0 rounded-xl font-bold text-slate-700 focus-visible:ring-blue-500 outline-none disabled:opacity-70"
                                 >
-                                    <option value="10">10 Mins</option>
-                                    <option value="15">15 Mins</option>
-                                    <option value="20">20 Mins</option>
-                                    <option value="30">30 Mins</option>
+                                    <option value="10">{t('slotMins').replace('{mins}', '10')}</option>
+                                    <option value="15">{t('slotMins').replace('{mins}', '15')}</option>
+                                    <option value="20">{t('slotMins').replace('{mins}', '20')}</option>
+                                    <option value="30">{t('slotMins').replace('{mins}', '30')}</option>
                                 </select>
                             </div>
                         </div>
@@ -533,12 +546,12 @@ export default function SettingsPage() {
                 >
                     <div className="flex items-center gap-2 px-1">
                         <Clock className="h-4 w-4 text-blue-500" />
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinic Timings</h2>
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('timings')}</h2>
                     </div>
 
                     <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 space-y-6">
                         <div className="space-y-3">
-                            <Label className="text-xs font-bold text-slate-400 uppercase block pl-1">Morning Shift</Label>
+                            <Label className="text-xs font-bold text-slate-400 uppercase block pl-1">{t('morningShift')}</Label>
                             <div className="flex items-center gap-3">
                                 <Input
                                     type="time"
@@ -558,7 +571,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <div className="space-y-3">
-                            <Label className="text-xs font-bold text-slate-400 uppercase block pl-1">Evening Shift</Label>
+                            <Label className="text-xs font-bold text-slate-400 uppercase block pl-1">{t('eveningShift')}</Label>
                             <div className="flex items-center gap-3">
                                 <Input
                                     type="time"
@@ -589,14 +602,14 @@ export default function SettingsPage() {
                 >
                     <div className="flex items-center gap-2 px-1">
                         <Bell className="h-4 w-4 text-blue-500" />
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Notifications</h2>
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('notifications')}</h2>
                     </div>
 
                     <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label className="text-sm font-bold text-slate-700">WhatsApp Confirmations</Label>
-                                <p className="text-xs text-slate-400 font-medium">Send appointment details via WhatsApp</p>
+                                <Label className="text-sm font-bold text-slate-700">{t('whatsappConfirmations')}</Label>
+                                <p className="text-xs text-slate-400 font-medium">{t('sendAppointmentDetails')}</p>
                             </div>
                             <Switch
                                 checked={settingsData.send_confirmations}
@@ -606,8 +619,8 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label className="text-sm font-bold text-slate-700">Auto Reminders</Label>
-                                <p className="text-xs text-slate-400 font-medium">Send reminder 1 hour before</p>
+                                <Label className="text-sm font-bold text-slate-700">{t('autoReminders')}</Label>
+                                <p className="text-xs text-slate-400 font-medium">{t('sendReminderOneHour')}</p>
                             </div>
                             <Switch
                                 checked={settingsData.send_reminders}
@@ -628,22 +641,22 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between px-1">
                             <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-blue-500" />
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinic Staff</h2>
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('staff')}</h2>
                             </div>
                             <Dialog open={showAddStaffDialog} onOpenChange={setShowAddStaffDialog}>
                                 <DialogTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 rounded-lg text-blue-600 font-bold gap-1 hover:bg-blue-50">
                                         <Plus className="w-4 h-4" />
-                                        Add Staff
+                                        {t('addStaff')}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="rounded-[2rem] p-6">
                                     <DialogHeader>
-                                        <DialogTitle className="text-xl font-black text-slate-800">Add Staff Member</DialogTitle>
+                                        <DialogTitle className="text-xl font-black text-slate-800">{t('addStaffMember')}</DialogTitle>
                                     </DialogHeader>
                                     <form onSubmit={handleAddStaff} className="space-y-4 mt-4">
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase">Full Name</Label>
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('fullName')}</Label>
                                             <Input
                                                 required
                                                 value={newStaffData.name}
@@ -653,7 +666,7 @@ export default function SettingsPage() {
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase">Email Address</Label>
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('emailAddress')}</Label>
                                             <Input
                                                 required
                                                 type="email"
@@ -664,14 +677,14 @@ export default function SettingsPage() {
                                             />
                                         </div>
                                         <p className="text-[10px] text-slate-400 font-medium bg-slate-50 p-3 rounded-xl">
-                                            A temporary password will be generated for the staff member to log in.
+                                            {t('staffPasswordNote')}
                                         </p>
                                         <Button
                                             type="submit"
                                             className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold"
                                             disabled={creatingStaff}
                                         >
-                                            {creatingStaff ? 'Creating...' : 'Create Staff User'}
+                                            {creatingStaff ? t('creating') : t('createStaffUser')}
                                         </Button>
                                     </form>
                                 </DialogContent>
@@ -684,7 +697,7 @@ export default function SettingsPage() {
                                     <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                                         <Users className="w-6 h-6 text-slate-300" />
                                     </div>
-                                    <p className="text-sm font-bold text-slate-400">No staff members added yet</p>
+                                    <p className="text-sm font-bold text-slate-400">{t('noStaffAdded')}</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-50">
@@ -704,14 +717,20 @@ export default function SettingsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="opacity-0 group-hover:opacity-100 h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                                onClick={() => handleDeleteStaff(staff.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    checked={staff.is_active ?? true}
+                                                    onCheckedChange={() => handleToggleStaffStatus(staff.id, staff.is_active ?? true)}
+                                                />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="opacity-0 group-hover:opacity-100 h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                    onClick={() => handleDeleteStaff(staff.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -721,6 +740,7 @@ export default function SettingsPage() {
                 )}
 
                 {/* Security Section */}
+                {/* Security Section */}
                 <motion.section
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -729,29 +749,29 @@ export default function SettingsPage() {
                 >
                     <div className="flex items-center gap-2 px-1">
                         <Lock className="h-4 w-4 text-blue-500" />
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Security</h2>
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('security')}</h2>
                     </div>
 
-                    <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50">
+                    <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50 space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="text-sm font-bold text-slate-700">Account Password</p>
-                                <p className="text-[10px] text-slate-400 font-medium">Keep your account secure</p>
+                                <p className="text-sm font-bold text-slate-700">{t('accountPassword')}</p>
+                                <p className="text-[10px] text-slate-400 font-medium">{t('keepAccountSecure')}</p>
                             </div>
                             <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" size="sm" className="h-10 rounded-xl px-4 font-bold text-slate-600 border-slate-200">
                                         <Key className="w-4 h-4 mr-2" />
-                                        Change Password
+                                        {t('changePassword')}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="rounded-[2rem] p-6">
                                     <DialogHeader>
-                                        <DialogTitle className="text-xl font-black text-slate-800">Update Password</DialogTitle>
+                                        <DialogTitle className="text-xl font-black text-slate-800">{t('updatePassword')}</DialogTitle>
                                     </DialogHeader>
                                     <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase">New Password</Label>
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('newPassword')}</Label>
                                             <div className="relative">
                                                 <Input
                                                     required
@@ -771,7 +791,7 @@ export default function SettingsPage() {
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase">Confirm Password</Label>
+                                            <Label className="text-xs font-bold text-slate-500 uppercase">{t('confirmPassword')}</Label>
                                             <div className="relative">
                                                 <Input
                                                     required
@@ -795,11 +815,53 @@ export default function SettingsPage() {
                                             className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold"
                                             disabled={updatingPassword}
                                         >
-                                            {updatingPassword ? 'Updating...' : 'Update Password'}
+                                            {updatingPassword ? t('updating') : t('updatePassword')}
                                         </Button>
                                     </form>
                                 </DialogContent>
                             </Dialog>
+                        </div>
+                    </div>
+                </motion.section>
+
+                {/* Language Settings */}
+                <motion.section
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 }}
+                    className="space-y-4"
+                >
+                    <div className="flex items-center gap-2 px-1">
+                        <Languages className="h-4 w-4 text-blue-500" />
+                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('language')}</h2>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.03)] border border-slate-50">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label className="text-sm font-bold text-slate-700">{t('language')}</Label>
+                                <p className="text-xs text-slate-400 font-medium">{t('preferredLanguage')}</p>
+                            </div>
+                            <div className="flex bg-slate-50 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setLanguage('en')}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-lg text-xs font-black transition-all",
+                                        language === 'en' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"
+                                    )}
+                                >
+                                    English
+                                </button>
+                                <button
+                                    onClick={() => setLanguage('hi')}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-lg text-xs font-black transition-all",
+                                        language === 'hi' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"
+                                    )}
+                                >
+                                    हिंदी
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </motion.section>
@@ -819,12 +881,12 @@ export default function SettingsPage() {
                             {saving ? (
                                 <div className="flex items-center gap-2">
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Saving...</span>
+                                    <span>{t('saving')}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <Save className="w-5 h-5" />
-                                    <span>Save Changes</span>
+                                    <span>{t('save')}</span>
                                 </div>
                             )}
                         </Button>
@@ -836,7 +898,7 @@ export default function SettingsPage() {
                         onClick={handleLogout}
                     >
                         <LogOut className="w-5 h-5 mr-2" />
-                        Log Out
+                        {t('logout')}
                     </Button>
                 </motion.div>
 
@@ -858,20 +920,20 @@ export default function SettingsPage() {
                             >
                                 <CheckCircle2 className="w-8 h-8 text-white" />
                             </motion.div>
-                            <DialogTitle className="text-2xl font-black text-slate-800 mb-2">Staff Created!</DialogTitle>
-                            <p className="text-sm text-slate-600 font-medium">Share these credentials with the new staff member</p>
+                            <DialogTitle className="text-2xl font-black text-slate-800 mb-2">{t('staffCreated')}</DialogTitle>
+                            <p className="text-sm text-slate-600 font-medium">{t('shareCredentials')}</p>
                         </div>
 
                         <div className="p-6 space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Email</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('email')}</Label>
                                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                     <p className="text-sm font-bold text-slate-700">{createdStaffCredentials?.email}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Temporary Password</Label>
+                                <Label className="text-xs font-bold text-slate-500 uppercase">{t('temporaryPassword')}</Label>
                                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-center justify-between gap-3">
                                     <code className="text-lg font-black text-amber-900 tracking-wider">{createdStaffCredentials?.password}</code>
                                     <Button
@@ -888,12 +950,12 @@ export default function SettingsPage() {
                                         {passwordCopied ? (
                                             <>
                                                 <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                Copied!
+                                                {t('copied')}
                                             </>
                                         ) : (
                                             <>
                                                 <Copy className="w-4 h-4 mr-2" />
-                                                Copy
+                                                {t('copy')}
                                             </>
                                         )}
                                     </Button>
@@ -902,7 +964,7 @@ export default function SettingsPage() {
 
                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                 <p className="text-xs text-blue-700 font-medium leading-relaxed">
-                                    <span className="font-bold">⚠️ Important:</span> Make sure to copy and share this password now. The staff member should change it after their first login.
+                                    <span className="font-bold">⚠️ {t('important')}</span> {t('sharePasswordNote')}
                                 </p>
                             </div>
 
@@ -910,7 +972,7 @@ export default function SettingsPage() {
                                 onClick={() => setShowPasswordDialog(false)}
                                 className="w-full h-12 bg-slate-800 hover:bg-slate-900 rounded-xl font-bold"
                             >
-                                Done
+                                {t('done')}
                             </Button>
                         </div>
                     </DialogContent>
@@ -930,7 +992,7 @@ export default function SettingsPage() {
                         )}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Home</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('home')}</span>
                     </button>
 
                     <button
@@ -943,7 +1005,7 @@ export default function SettingsPage() {
                         )}>
                             <Calendar className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Schedule</span>
+                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('schedule')}</span>
                     </button>
 
                     <button
@@ -956,7 +1018,7 @@ export default function SettingsPage() {
                         )}>
                             <Settings className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-blue-600">Settings</span>
+                        <span className="text-[10px] font-black text-blue-600">{t('settings')}</span>
                     </button>
                 </div>
             </nav>

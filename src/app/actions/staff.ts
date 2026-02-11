@@ -128,3 +128,31 @@ export async function deleteStaffUser(staffUserId: string) {
     revalidatePath('/settings')
     return { success: true }
 }
+
+export async function updateStaffStatus(staffUserId: string, isActive: boolean) {
+    const supabase = await createServerClient()
+    const adminSupabase = createAdminClient()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) return { error: 'Not authenticated' }
+
+    // Verify current user is doctor
+    const { data: userData } = await supabase
+        .from('users')
+        .select('clinic_id, role')
+        .eq('id', session.user.id)
+        .single()
+
+    if (!userData || userData.role !== 'doctor') return { error: 'Unauthorized' }
+
+    const { error } = await adminSupabase
+        .from('users')
+        .update({ is_active: isActive })
+        .eq('id', staffUserId)
+        .eq('clinic_id', userData.clinic_id)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
