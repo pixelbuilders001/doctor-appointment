@@ -145,7 +145,12 @@ export const translations = {
         dontHaveAccount: "Don't have an account? Sign up",
         createYourAccount: 'Create your account',
         startManaging: 'Start managing your clinic',
-        signInToManage: 'Sign in to manage your clinic'
+        signInToManage: 'Sign in to manage your clinic',
+        accountDisabled: 'Your account is disabled. Please contact the administrator.',
+        noResultsFound: 'No results found',
+        searchInstruction: 'Search by name or mobile number',
+        uploadBanner: 'Upload Banner',
+        updating: 'Updating...'
     },
     hi: {
         // Navigation
@@ -291,7 +296,12 @@ export const translations = {
         dontHaveAccount: 'खाता नहीं है? साइन अप करें',
         createYourAccount: 'अपना खाता बनाएँ',
         startManaging: 'अपना क्लिनिक प्रबंधित करना शुरू करें',
-        signInToManage: 'अपने क्लिनिक को प्रबंधित करने के लिए साइन इन करें'
+        signInToManage: 'अपने क्लिनिक को प्रबंधित करने के लिए साइन इन करें',
+        accountDisabled: 'आपका खाता निष्क्रिय कर दिया गया है। कृपया व्यवस्थापक से संपर्क करें।',
+        noResultsFound: 'कोई परिणाम नहीं मिला',
+        searchInstruction: 'नाम या मोबाइल नंबर से खोजें',
+        uploadBanner: 'बैनर अपलोड करें',
+        updating: 'अपडेट हो रहा है...'
     }
 };
 
