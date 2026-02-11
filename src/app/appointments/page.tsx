@@ -640,13 +640,13 @@ export default function AppointmentsPage() {
             <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <DialogContent
                     showCloseButton={false}
-                    className="fixed !bottom-0 !top-auto !left-0 !translate-x-0 !translate-y-0 w-full max-w-none h-[85vh] rounded-t-[2rem] border-0 p-0 gap-0 bg-[#F8F9FD] outline-none"
+                    className="fixed !bottom-0 !top-auto !left-0 !translate-x-0 !translate-y-0 w-full max-w-none h-[80vh] rounded-t-[2rem] border-0 p-0 gap-0 bg-[#F8F9FD] outline-none"
                 >
-                    <div className="p-6 bg-white rounded-t-[2rem] shadow-sm relative z-10">
-                        <div className="w-12 h-1 bg-slate-100 rounded-full mx-auto mb-6" />
+                    <div className="py-3 px-2 rounded-t-[2rem] shadow-sm relative z-10">
+                        <div className="w-12  bg-slate-100 rounded-full mx-auto" />
 
                         <div className="flex items-center gap-3 relative">
-                            <Search className="w-5 h-5 text-blue-500 absolute left-4" />
+                            <Search className="w-5 h-0 text-blue-500 absolute left-4" />
                             <input
                                 id="sheet-search-input"
                                 value={sheetSearchQuery}
