@@ -312,7 +312,7 @@ export default function SettingsPage() {
     return (
         <PageTransition className="min-h-screen bg-[#F8F9FD] pb-24 font-sans">
             {/* Header */}
-            <div className="bg-white px-6 py-5 sticky top-0 z-10 shadow-sm/50">
+            <div className="bg-white px-6 py-3 sticky top-0 z-10 shadow-sm/50">
                 <div className="flex items-center gap-4 mb-2">
                     <Button
                         variant="ghost"
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                     </Button>
                     <h1 className="text-xl font-bold text-slate-800">{t('settings')}</h1>
                 </div>
-                {isReadOnly && (
+                {/* {isReadOnly && (
                     <div className="mx-6 mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                             <ShieldCheck className="w-5 h-5 text-amber-600" />
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                             <p className="text-[10px] font-bold text-amber-700/80">{t('adminAccess')}</p>
                         </div>
                     </div>
-                )}
+                )} */}
             </div>
 
             <div className="px-6 py-6 max-w-lg mx-auto space-y-8">
@@ -594,7 +594,7 @@ export default function SettingsPage() {
                 </motion.section>
 
                 {/* Notifications Section */}
-                <motion.section
+                {/* <motion.section
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
@@ -629,7 +629,7 @@ export default function SettingsPage() {
                             />
                         </div>
                     </div>
-                </motion.section>
+                </motion.section> */}
                 {/* Staff Management Section (Doctors Only) */}
                 {!isReadOnly && (
                     <motion.section

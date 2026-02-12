@@ -133,7 +133,7 @@ export default function DashboardPage() {
         if (!clinicId) return
 
         try {
-            const today = new Date().toISOString().split('T')[0]
+            const today = new Date().toLocaleDateString('en-CA')
 
             const { data: appointments, error } = await supabase
                 .from('appointments')
@@ -429,12 +429,11 @@ export default function DashboardPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        onClick={() => userRole !== 'staff' && updatePaymentStatus(appointment.id, 'paid')}
+                                                        onClick={() => updatePaymentStatus(appointment.id, 'paid')}
                                                         className={cn(
-                                                            "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9",
-                                                            userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                                                            "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9"
                                                         )}
-                                                        disabled={updatingId === appointment.id || userRole === 'staff'}
+                                                        disabled={updatingId === appointment.id}
                                                     >
                                                         {updatingId === appointment.id ? '...' : t('paid')}
                                                     </Button>

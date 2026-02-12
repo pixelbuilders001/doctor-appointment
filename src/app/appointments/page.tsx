@@ -178,7 +178,8 @@ export default function AppointmentsPage() {
                 setPage(0)
             }
 
-            const dateStr = selectedDate.toISOString().split('T')[0]
+            // Use local date string to avoid UTC shifting
+            const dateStr = selectedDate.toLocaleDateString('en-CA') // YYYY-MM-DD in local time
             const currentPage = reset ? 0 : page
 
             const result = await getAppointments({
@@ -227,7 +228,7 @@ export default function AppointmentsPage() {
         if (!clinicId) return
 
         try {
-            const dateStr = selectedDate.toISOString().split('T')[0]
+            const dateStr = selectedDate.toLocaleDateString('en-CA')
             const nextPage = page + 1
 
             const result = await getAppointments({
@@ -257,7 +258,7 @@ export default function AppointmentsPage() {
         try {
             const result = await getAppointments({
                 clinicId,
-                date: selectedDate.toISOString().split('T')[0], // Passed but ignored if query exists
+                date: selectedDate.toLocaleDateString('en-CA'), // Passed but ignored if query exists
                 searchQuery: sheetSearchQuery,
                 page: 0,
                 limit: 50,
@@ -367,7 +368,8 @@ export default function AppointmentsPage() {
                 appointment_date: new Date().toISOString().split('T')[0],
             })
             // Fetch will happen via realtime
-            if (dateStr === selectedDate.toISOString().split('T')[0]) {
+            // Fetch will happen via realtime, but manual fetch is safer for immediate feedback
+            if (dateStr === selectedDate.toLocaleDateString('en-CA')) {
                 fetchAppointments(true)
             }
         } catch (error) {
@@ -1003,11 +1005,10 @@ function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentSt
                     <Button
                         variant="outline"
                         className={cn(
-                            "flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95",
-                            userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                            "flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
                         )}
-                        onClick={() => userRole !== 'staff' && updatePaymentStatus(app.id, 'paid')}
-                        disabled={updatingId === app.id || userRole === 'staff'}
+                        onClick={() => updatePaymentStatus(app.id, 'paid')}
+                        disabled={updatingId === app.id}
                     >
                         {t('markPaid')}
                     </Button>
@@ -1020,15 +1021,13 @@ function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentSt
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                                if (userRole === 'staff') return
                                 setAppointmentToDelete(app.id)
                                 setIsDeleteDialogOpen(true)
                             }}
                             className={cn(
-                                "h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50",
-                                userRole === 'staff' && "opacity-50 cursor-not-allowed"
+                                "h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
                             )}
-                            disabled={updatingId === app.id || userRole === 'staff'}
+                            disabled={updatingId === app.id}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
