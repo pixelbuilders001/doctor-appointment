@@ -12,9 +12,20 @@ export const metadata: Metadata = {
   description: 'Modern Clinic Management System',
   manifest: '/manifest.json',
   icons: {
-    icon: '/images/pwa-icon.png',
-    shortcut: '/images/pwa-icon.png',
-    apple: '/images/pwa-icon.png',
+    icon: [
+      { url: '/images/favicon-48x48.png', sizes: '48x48' },
+      { url: '/images/icon-72x72.png', sizes: '72x72' },
+      { url: '/images/icon-192x192.png', sizes: '192x192' },
+    ],
+    shortcut: '/images/icon-192x192.png',
+    apple: '/images/icon-192x192.png',
+  },
+  themeColor: '#2563eb',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Clinic Plus',
+    startupImage: '/images/icon-512x512.png',
   },
 }
 
