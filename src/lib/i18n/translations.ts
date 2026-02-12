@@ -150,7 +150,11 @@ export const translations = {
         noResultsFound: 'No results found',
         searchInstruction: 'Search by name or mobile number',
         uploadBanner: 'Upload Banner',
-        updating: 'Updating...'
+        updating: 'Updating...',
+        resetPassword: 'Reset Password',
+        sendResetLink: 'Send Reset Link',
+        resetLinkSent: 'Reset link sent to your email!',
+        backToLogin: 'Back to Login'
     },
     hi: {
         // Navigation
@@ -301,7 +305,11 @@ export const translations = {
         noResultsFound: 'कोई परिणाम नहीं मिला',
         searchInstruction: 'नाम या मोबाइल नंबर से खोजें',
         uploadBanner: 'बैनर अपलोड करें',
-        updating: 'अपडेट हो रहा है...'
+        updating: 'अपडेट हो रहा है...',
+        resetPassword: 'पासवर्ड रीसेट करें',
+        sendResetLink: 'रीसेट लिंक भेजें',
+        resetLinkSent: 'आपके ईमेल पर रीसेट लिंक भेज दिया गया है!',
+        backToLogin: 'लॉगिन पर वापस जाएं'
     }
 };
 

@@ -20,6 +20,8 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
+    const [isForgotPassword, setIsForgotPassword] = useState(false)
+    const [resetLinkSent, setResetLinkSent] = useState(false)
     const router = useRouter()
     const supabase = createClient()
     const { t } = useLanguage()
@@ -31,6 +33,24 @@ export default function LoginPage() {
         setError('')
 
         try {
+            if (isForgotPassword) {
+                const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                })
+
+                if (resetError) {
+                    setError(resetError.message)
+                    return
+                }
+
+                setResetLinkSent(true)
+                toast({
+                    title: t('success'),
+                    description: t('resetLinkSent'),
+                })
+                return
+            }
+
             if (isSignUp) {
                 const { data, error: signUpError } = await supabase.auth.signUp({
                     email,
@@ -187,7 +207,7 @@ export default function LoginPage() {
                                 <img
                                     src="/images/logo.png"
                                     alt="Clinic Plus Logo"
-                                    className="w-40 h-auto object-contain drop-shadow-sm"
+                                    className="w-34 h-auto object-contain drop-shadow-sm"
                                 />
                             </motion.div>
 
@@ -206,7 +226,10 @@ export default function LoginPage() {
                                 transition={{ delay: 0.3 }}
                                 className="text-slate-500 text-sm font-medium"
                             >
-                                {isSignUp ? t('createYourAccount') : t('welcomeBack')}
+                                {isForgotPassword
+                                    ? (resetLinkSent ? t('success') : t('resetPassword'))
+                                    : (isSignUp ? t('createYourAccount') : t('welcomeBack'))
+                                }
                             </motion.p>
                         </div>
 
@@ -226,86 +249,102 @@ export default function LoginPage() {
 
                             <AnimatePresence mode="wait">
                                 <motion.div
-                                    key={isSignUp ? 'signup' : 'signin'}
+                                    key={isForgotPassword ? 'forgot' : (isSignUp ? 'signup' : 'signin')}
                                     initial={{ opacity: 0, x: 10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -10 }}
                                     transition={{ duration: 0.2 }}
                                     className="space-y-4"
                                 >
-                                    {isSignUp && (
-                                        <div className="space-y-1.5 px-0.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                                {t('clinicName')}
-                                            </Label>
-                                            <div className="relative group/input">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
-                                                    <Building className="h-4 w-4" />
+                                    {resetLinkSent ? (
+                                        <div className="bg-blue-50 border border-blue-100 text-blue-600 px-4 py-6 rounded-2xl text-center">
+                                            <p className="text-sm font-bold leading-relaxed">
+                                                {t('resetLinkSent')}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {isSignUp && !isForgotPassword && (
+                                                <div className="space-y-1.5 px-0.5">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                        {t('clinicName')}
+                                                    </Label>
+                                                    <div className="relative group/input">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
+                                                            <Building className="h-4 w-4" />
+                                                        </div>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Healing Hands Clinic"
+                                                            value={clinicName}
+                                                            onChange={(e) => setClinicName(e.target.value)}
+                                                            className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
+                                                            required
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <Input
-                                                    type="text"
-                                                    placeholder="Healing Hands Clinic"
-                                                    value={clinicName}
-                                                    onChange={(e) => setClinicName(e.target.value)}
-                                                    className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-1.5 px-0.5">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                            {t('email')}
-                                        </Label>
-                                        <div className="relative group/input">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
-                                                <Mail className="h-4 w-4" />
-                                            </div>
-                                            <Input
-                                                type="email"
-                                                placeholder="doctor@clinicplus.com"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1.5 px-0.5">
-                                        <div className="flex justify-between items-center ml-1">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                {t('password')}
-                                            </Label>
-                                            {!isSignUp && (
-                                                <button type="button" className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-500 transition-colors">
-                                                    {t('forgotPassword')}
-                                                </button>
                                             )}
-                                        </div>
-                                        <div className="relative group/input">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
-                                                <Lock className="h-4 w-4" />
+
+                                            <div className="space-y-1.5 px-0.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                    {t('email')}
+                                                </Label>
+                                                <div className="relative group/input">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
+                                                        <Mail className="h-4 w-4" />
+                                                    </div>
+                                                    <Input
+                                                        type="email"
+                                                        placeholder="doctor@clinicplus.com"
+                                                        value={email}
+                                                        onChange={(e) => setEmail(e.target.value)}
+                                                        className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
+                                                        required
+                                                    />
+                                                </div>
                                             </div>
-                                            <Input
-                                                type={showPassword ? 'text' : 'password'}
-                                                placeholder="••••••••"
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 pr-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
-                                                required
-                                                minLength={6}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
-                                            >
-                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                            </button>
-                                        </div>
-                                    </div>
+
+                                            {!isForgotPassword && (
+                                                <div className="space-y-1.5 px-0.5">
+                                                    <div className="flex justify-between items-center ml-1">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                            {t('password')}
+                                                        </Label>
+                                                        {!isSignUp && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsForgotPassword(true)}
+                                                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-500 transition-colors"
+                                                            >
+                                                                {t('forgotPassword')}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative group/input">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-400">
+                                                            <Lock className="h-4 w-4" />
+                                                        </div>
+                                                        <Input
+                                                            type={showPassword ? 'text' : 'password'}
+                                                            placeholder="••••••••"
+                                                            value={password}
+                                                            onChange={(e) => setPassword(e.target.value)}
+                                                            className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 pr-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
+                                                            required={!isForgotPassword}
+                                                            minLength={6}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
+                                                        >
+                                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
 
@@ -318,14 +357,14 @@ export default function LoginPage() {
                                 <Button
                                     type="submit"
                                     className="w-full h-13 group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-blue-500/15 transition-all duration-300 active:scale-[0.98] border-0"
-                                    disabled={loading || !email || password.length < 6}
+                                    disabled={loading || !email || (isForgotPassword ? false : password.length < 6) || (isForgotPassword && resetLinkSent)}
                                 >
                                     <span className="flex items-center gap-2">
                                         {loading ? (
                                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         ) : (
                                             <>
-                                                {isSignUp ? t('createAccount') : t('signIn')}
+                                                {isForgotPassword ? t('sendResetLink') : (isSignUp ? t('createAccount') : t('signIn'))}
                                                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                                             </>
                                         )}
@@ -342,12 +381,17 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setIsSignUp(!isSignUp)
+                                        if (isForgotPassword) {
+                                            setIsForgotPassword(false)
+                                            setResetLinkSent(false)
+                                        } else {
+                                            setIsSignUp(!isSignUp)
+                                        }
                                         setError('')
                                     }}
                                     className="text-xs text-slate-500 font-bold hover:text-blue-600 transition-colors"
                                 >
-                                    {isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount')}
+                                    {isForgotPassword ? t('backToLogin') : (isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount'))}
                                 </button>
                             </motion.div>
                         </form>
