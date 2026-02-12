@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Lock, Eye, EyeOff, Building } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Building, ArrowRight, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -31,7 +32,6 @@ export default function LoginPage() {
 
         try {
             if (isSignUp) {
-                // Sign up new user
                 const { data, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
@@ -43,10 +43,7 @@ export default function LoginPage() {
                 }
 
                 if (data.user) {
-                    // Wait a moment for auth to complete
                     await new Promise(resolve => setTimeout(resolve, 1000))
-
-                    // Create clinic first
                     const doctorName = email.split('@')[0]
                     const slug = clinicName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
 
@@ -63,35 +60,20 @@ export default function LoginPage() {
                         .single()
 
                     if (clinicError) {
-                        console.error('Error creating clinic:', clinicError)
                         setError('Failed to create clinic: ' + clinicError.message)
                         return
                     }
 
                     if (clinic) {
-                        // Create user record
-                        const { error: userError } = await supabase.from('users').insert({
+                        await supabase.from('users').insert({
                             id: data.user.id,
                             clinic_id: clinic.id,
                             mobile: null,
                             role: 'doctor',
                         })
-
-                        if (userError) {
-                            console.error('Error creating user:', userError)
-                            setError('Failed to create user record: ' + userError.message)
-                            return
-                        }
-
-                        // Create clinic settings
-                        const { error: settingsError } = await supabase.from('clinic_settings').insert({
+                        await supabase.from('clinic_settings').insert({
                             clinic_id: clinic.id,
                         })
-
-                        if (settingsError) {
-                            console.error('Error creating settings:', settingsError)
-                            // Don't fail on settings error, it's not critical
-                        }
                     }
 
                     toast({
@@ -103,7 +85,6 @@ export default function LoginPage() {
                     setPassword('')
                 }
             } else {
-                // Sign in existing user
                 const { data, error: signInError } = await supabase.auth.signInWithPassword({
                     email,
                     password,
@@ -115,23 +96,19 @@ export default function LoginPage() {
                 }
 
                 if (data.user) {
-                    // Check if user record exists in our users table
-                    const { data: userData, error: userCheckError } = await supabase
+                    const { data: userData } = await supabase
                         .from('users')
                         .select('*')
                         .eq('id', data.user.id)
                         .maybeSingle()
 
-                    // If user doesn't exist in our table, create it
-                    if (!userData && !userCheckError) {
-                        // Create clinic first
+                    if (!userData) {
                         const doctorName = email.split('@')[0]
                         const slug = clinicName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
-
-                        const { data: clinic, error: clinicError } = await supabase
+                        const { data: clinic } = await supabase
                             .from('clinics')
                             .insert({
-                                name: clinicName,
+                                name: clinicName || 'My Clinic',
                                 doctor_name: doctorName,
                                 slug: slug,
                                 mobile: null,
@@ -140,35 +117,27 @@ export default function LoginPage() {
                             .select()
                             .single()
 
-                        if (!clinicError && clinic) {
-                            // Create user record
+                        if (clinic) {
                             await supabase.from('users').insert({
                                 id: data.user.id,
                                 clinic_id: clinic.id,
                                 mobile: null,
                                 role: 'doctor',
                             })
-
-                            // Create clinic settings
                             await supabase.from('clinic_settings').insert({
                                 clinic_id: clinic.id,
                             })
                         }
-                    }
-
-                    // Check if user is active
-                    if (userData && userData.is_active === false) {
+                    } else if (userData.is_active === false) {
                         await supabase.auth.signOut()
                         setError(t('accountDisabled') || 'Your account is disabled. Please contact the administrator.')
                         setLoading(false)
                         return
                     }
                 }
-
                 router.push('/dashboard')
             }
         } catch (err: any) {
-            console.error('Error:', err)
             setError('Something went wrong. Please try again.')
         } finally {
             setLoading(false)
@@ -176,139 +145,241 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center space-y-4">
-                    <div className="mx-auto w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center">
-                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <CardTitle className="text-3xl font-bold text-gray-900">ClinicFlow</CardTitle>
-                        <CardDescription className="text-base mt-2">
-                            {isSignUp ? t('createYourAccount') : t('welcomeBack')}
-                            <br />
-                            {isSignUp ? t('startManaging') : t('signInToManage')}
-                        </CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                                {error}
-                            </div>
-                        )}
+        <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-slate-950">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 90, 0],
+                        x: [0, 100, 0],
+                        y: [0, 50, 0],
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1, 1.3, 1],
+                        rotate: [0, -90, 0],
+                        x: [0, -100, 0],
+                        y: [0, -50, 0],
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-indigo-600/20 blur-[120px] rounded-full"
+                />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none" />
+            </div>
 
-                        {isSignUp && (
-                            <div className="space-y-2">
-                                <Label htmlFor="clinicName" className="text-sm font-medium text-gray-700">
-                                    {t('profile')}
-                                </Label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Building className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <Input
-                                        id="clinicName"
-                                        type="text"
-                                        placeholder="Enter your clinic name"
-                                        value={clinicName}
-                                        onChange={(e) => setClinicName(e.target.value)}
-                                        className="pl-10 h-12 text-base"
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-                            </div>
-                        )}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="w-full max-w-[440px] z-10"
+            >
+                <div className="relative group">
+                    {/* Glassmorphic Card */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                                {t('email')}
-                            </Label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Mail className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="doctor@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="pl-10 h-12 text-base"
-                                    required
-                                    disabled={loading}
-                                />
-                            </div>
+                    <div className="relative bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-2xl overflow-hidden">
+                        {/* Header */}
+                        <div className="text-center mb-8 space-y-3">
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4"
+                            >
+                                <Sparkles className="w-8 h-8 text-white" />
+                            </motion.div>
+
+                            <motion.h1
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-3xl font-black text-white tracking-tight"
+                            >
+                                ClinicFlow
+                            </motion.h1>
+
+                            <motion.p
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="text-slate-400 text-sm font-medium"
+                            >
+                                {isSignUp ? t('createYourAccount') : t('welcomeBack')}
+                            </motion.p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                                {t('password')}
-                            </Label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <Input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder={isSignUp ? 'Create a password (min 6 characters)' : 'Enter your password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-10 pr-10 h-12 text-base"
-                                    required
-                                    disabled={loading}
-                                    minLength={6}
-                                />
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <AnimatePresence mode="wait">
+                                {error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+                                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-2xl text-xs font-bold leading-relaxed overflow-hidden"
+                                    >
+                                        {error}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={isSignUp ? 'signup' : 'signin'}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="space-y-4"
+                                >
+                                    {isSignUp && (
+                                        <div className="space-y-1.5 px-1">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                                                {t('clinicName')}
+                                            </Label>
+                                            <div className="relative group/input">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-500">
+                                                    <Building className="h-4 w-4" />
+                                                </div>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Healing Hands Clinic"
+                                                    value={clinicName}
+                                                    onChange={(e) => setClinicName(e.target.value)}
+                                                    className="bg-white/5 border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:ring-blue-500/20 h-12 rounded-2xl pl-11 transition-all duration-300 text-white placeholder:text-slate-600"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-1.5 px-1">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">
+                                            {t('email')}
+                                        </Label>
+                                        <div className="relative group/input">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-500">
+                                                <Mail className="h-4 w-4" />
+                                            </div>
+                                            <Input
+                                                type="email"
+                                                placeholder="doctor@clinicflow.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                className="bg-white/5 border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:ring-blue-500/20 h-12 rounded-2xl pl-11 transition-all duration-300 text-white placeholder:text-slate-600"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 px-1">
+                                        <div className="flex justify-between items-center ml-1">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                {t('password')}
+                                            </Label>
+                                            {!isSignUp && (
+                                                <button type="button" className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors">
+                                                    {t('forgotPassword')}
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="relative group/input">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within/input:text-blue-500 text-slate-500">
+                                                <Lock className="h-4 w-4" />
+                                            </div>
+                                            <Input
+                                                type={showPassword ? 'text' : 'password'}
+                                                placeholder="••••••••"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="bg-white/5 border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:ring-blue-500/20 h-12 rounded-2xl pl-11 pr-11 transition-all duration-300 text-white placeholder:text-slate-600"
+                                                required
+                                                minLength={6}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-blue-500 transition-colors"
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </AnimatePresence>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="pt-2"
+                            >
+                                <Button
+                                    type="submit"
+                                    className="w-full h-13 group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/25 transition-all duration-300 active:scale-[0.98] border-0"
+                                    disabled={loading || !email || password.length < 6}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        {loading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                {isSignUp ? t('createAccount') : t('signIn')}
+                                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                            </>
+                                        )}
+                                    </span>
+                                </Button>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.6 }}
+                                className="text-center"
+                            >
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                    onClick={() => {
+                                        setIsSignUp(!isSignUp)
+                                        setError('')
+                                    }}
+                                    className="text-xs text-slate-500 font-bold hover:text-blue-500 transition-colors"
                                 >
-                                    {showPassword ? (
-                                        <EyeOff className="h-5 w-5 text-gray-400" />
-                                    ) : (
-                                        <Eye className="h-5 w-5 text-gray-400" />
-                                    )}
+                                    {isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount')}
                                 </button>
+                            </motion.div>
+                        </form>
+
+                        {/* Status Bar */}
+                        {/* <div className="mt-8 pt-6 border-t border-white/5 flex justify-center items-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Systems Active</span>
                             </div>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full h-12 text-base bg-blue-500 hover:bg-blue-600"
-                            disabled={loading || !email || password.length < 6}
-                        >
-                            {loading ? (isSignUp ? t('creating') : t('loggingIn')) : (isSignUp ? t('createAccount') : t('signIn'))}
-                        </Button>
-
-                        <div className="text-center">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsSignUp(!isSignUp)
-                                    setError('')
-                                }}
-                                className="text-sm text-blue-500 hover:text-blue-600"
-                            >
-                                {isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount')}
-                            </button>
-                        </div>
-
-                        {!isSignUp && (
-                            <div className="flex justify-center gap-4 text-sm text-gray-600">
-                                <a href="#" className="hover:text-blue-500">{t('forgotPassword')}</a>
-                                <span>•</span>
-                                <a href="#" className="hover:text-blue-500">Need help?</a>
+                            <div className="w-1 h-1 rounded-full bg-slate-800" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v2.4.0</span>
                             </div>
-                        )}
-                    </form>
-                </CardContent>
-            </Card>
+                        </div> */}
+                    </div>
+                </div>
+
+                {/* Footer Help */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="mt-8 text-center"
+                >
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                        Need assistance? <a href="mailto:support@clinicflow.com" className="text-blue-500 hover:underline">Contact Support</a>
+                    </p>
+                </motion.div>
+            </motion.div>
         </div>
     )
 }
