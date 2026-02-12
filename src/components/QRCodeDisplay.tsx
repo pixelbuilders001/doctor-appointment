@@ -52,35 +52,144 @@ export default function QRCodeDisplay({ url, clinicName, doctorName }: QRCodeDis
 
     const printQR = () => {
         if (!qrDataUrl) return
-        const printWindow = window.open('', '', 'height=600,width=800')
+        const printWindow = window.open('', '', 'height=800,width=1000')
         if (!printWindow) return
 
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Print QR Code</title>
+                    <title>Book Appointment - ${clinicName}</title>
                     <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+                        
                         body { 
-                            font-family: sans-serif; 
+                            font-family: 'Outfit', sans-serif; 
+                            margin: 0;
+                            padding: 0;
                             display: flex; 
                             flex-direction: column; 
                             align-items: center; 
                             justify-content: center; 
-                            height: 100vh; 
-                            text-align: center;
+                            min-height: 100vh; 
+                            background: #ffffff;
+                            color: #1e293b;
                         }
-                        img { max-width: 300px; margin-bottom: 20px; }
-                        h1 { margin: 10px 0; color: #0f172a; }
-                        p { color: #64748b; margin-top: 5px; }
-                        .url { color: #2563eb; font-weight: bold; margin-top: 10px; }
+                        
+                        .flyer-container {
+                            width: 80%;
+                            max-width: 600px;
+                            padding: 60px;
+                            border: 2px solid #e2e8f0;
+                            border-radius: 40px;
+                            text-align: center;
+                            position: relative;
+                            background: radial-gradient(circle at top right, #eff6ff 0%, #ffffff 40%);
+                            box-shadow: 0 40px 100px -20px rgba(0,0,0,0.05);
+                        }
+
+                        .logo-container {
+                            margin-bottom: 30px;
+                        }
+
+                        .logo-img {
+                            height: 60px;
+                            width: auto;
+                            object-contain: contain;
+                        }
+
+                        .header {
+                            margin-bottom: 40px;
+                        }
+
+                        h1 { 
+                            margin: 0; 
+                            font-weight: 800; 
+                            font-size: 32px;
+                            color: #1e1b4b;
+                            letter-spacing: -0.02em;
+                            line-height: 1.2;
+                        }
+                        
+                        .doctor-name {
+                            font-size: 18px;
+                            font-weight: 600;
+                            color: #2563eb;
+                            margin: 8px 0;
+                            text-transform: uppercase;
+                            letter-spacing: 0.1em;
+                        }
+
+                        .qr-section {
+                            position: relative;
+                            display: inline-block;
+                            padding: 20px;
+                            background: white;
+                            border-radius: 30px;
+                            border: 1px solid #f1f5f9;
+                            box-shadow: 0 20px 50px -10px rgba(0,0,0,0.08);
+                            margin: 20px 0;
+                        }
+
+                        .qr-img { 
+                            width: 250px; 
+                            height: 250px;
+                            display: block;
+                        }
+
+                        .instruction {
+                            margin-top: 30px;
+                            font-weight: 800;
+                            font-size: 24px;
+                            color: #1e1b4b;
+                        }
+
+                        .sub-instruction {
+                            color: #64748b;
+                            font-size: 16px;
+                            margin-top: 8px;
+                        }
+
+                        .footer {
+                            margin-top: 50px;
+                            padding-top: 30px;
+                            border-top: 1px dashed #e2e8f0;
+                        }
+
+                        .url { 
+                            color: #2563eb; 
+                            font-weight: 600; 
+                            font-size: 14px;
+                            opacity: 0.7;
+                        }
+
+                        @media print {
+                            body { background: white; }
+                            .flyer-container { border: none; box-shadow: none; width: 100%; max-width: none; }
+                        }
                     </style>
                 </head>
                 <body>
-                    <h1>${doctorName}</h1>
-                    <p>${clinicName}</p>
-                    <img src="${qrDataUrl}" />
-                    <p>Scan to book an appointment</p>
-                    <div class="url">${url}</div>
+                    <div class="flyer-container">
+                        <div class="logo-container">
+                            <img src="/images/logo.png" class="logo-img" onerror="this.style.display='none'" />
+                        </div>
+                        
+                        <div class="header">
+                            <div class="doctor-name">${doctorName}</div>
+                            <h1>${clinicName}</h1>
+                        </div>
+                        
+                        <div class="qr-section">
+                            <img src="${qrDataUrl}" class="qr-img" />
+                        </div>
+                        
+                        <div class="instruction">Scan to Book Appointment</div>
+                        <div class="sub-instruction">Open your phone camera to scan</div>
+                        
+                        <div class="footer">
+                            <div class="url">${url}</div>
+                        </div>
+                    </div>
                 </body>
             </html>
         `)

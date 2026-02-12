@@ -6,21 +6,32 @@ import { revalidatePath } from 'next/cache'
 
 export async function getClinicStaff() {
     const supabase = await createServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) return { error: 'Not authenticated' }
-
-    // Get current user's clinic_id
-    const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('clinic_id, role')
-        .eq('id', session.user.id)
-        .single()
-
-    if (userError || !userData) return { error: 'Clinic not found' }
-    if (userData.role !== 'doctor') return { error: 'Unauthorized: Only doctors can manage staff' }
+    if (authError || !user) {
+        console.error('Auth check failed:', authError)
+        return { error: 'Not authenticated' }
+    }
 
     const adminSupabase = createAdminClient()
+
+    // Get current user's clinic_id using Admin client to bypass RLS
+    const { data: userData, error: userError } = await adminSupabase
+        .from('users')
+        .select('clinic_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (userError || !userData) {
+        console.error('User lookup failed (Admin):', userError)
+        return { error: 'Clinic not found' }
+    }
+
+    if (userData.role !== 'doctor' && userData.role !== 'staff') { // Allow staff to see themselves or others if needed
+        return { error: 'Unauthorized' }
+    }
+
+
     const { data: staff, error: staffError } = await adminSupabase
         .from('users')
         .select('*')
@@ -38,15 +49,15 @@ export async function getClinicStaff() {
 export async function createStaffUser(formData: { email: string, name: string }) {
     const supabase = await createServerClient()
     const adminSupabase = createAdminClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session) return { error: 'Not authenticated' }
+    if (!user) return { error: 'Not authenticated' }
 
     // Get current user's clinic_id
     const { data: userData, error: userError } = await supabase
         .from('users')
         .select('clinic_id, role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
     if (userError || !userData) return { error: 'Clinic not found' }
@@ -83,12 +94,6 @@ export async function createStaffUser(formData: { email: string, name: string })
         return { error: linkError.message }
     }
 
-    console.log('Staff created successfully:', {
-        authId: authUser.user.id,
-        clinicId: userData.clinic_id,
-        email: formData.email
-    })
-
     revalidatePath('/settings')
     return {
         success: true,
@@ -100,15 +105,15 @@ export async function createStaffUser(formData: { email: string, name: string })
 export async function deleteStaffUser(staffUserId: string) {
     const supabase = await createServerClient()
     const adminSupabase = createAdminClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session) return { error: 'Not authenticated' }
+    if (!user) return { error: 'Not authenticated' }
 
     // Verify current user is doctor of the same clinic
     const { data: userData } = await supabase
         .from('users')
         .select('clinic_id, role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
     if (!userData || userData.role !== 'doctor') return { error: 'Unauthorized' }
@@ -132,15 +137,15 @@ export async function deleteStaffUser(staffUserId: string) {
 export async function updateStaffStatus(staffUserId: string, isActive: boolean) {
     const supabase = await createServerClient()
     const adminSupabase = createAdminClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session) return { error: 'Not authenticated' }
+    if (!user) return { error: 'Not authenticated' }
 
     // Verify current user is doctor
     const { data: userData } = await supabase
         .from('users')
         .select('clinic_id, role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
 
     if (!userData || userData.role !== 'doctor') return { error: 'Unauthorized' }
