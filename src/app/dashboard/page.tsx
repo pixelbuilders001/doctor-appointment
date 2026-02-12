@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Plus, MapPin, User, Calendar, Settings } from 'lucide-react'
+import { Plus, MapPin, User, Calendar, Settings, ArrowRight, CheckCircle2, Globe, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
-import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -394,70 +393,82 @@ export default function DashboardPage() {
                                         exit={{ opacity: 0, x: 20 }}
                                         layout
                                         key={appointment.id}
-                                        className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden active:scale-[0.99] transition-transform"
+                                        className="bg-white p-5 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100/50 hover:shadow-[0_15px_35px_rgba(0,0,0,0.03)] transition-all duration-300 relative overflow-hidden group"
                                     >
-                                        <div className={cn(
-                                            "absolute top-0 left-0 w-1 h-full",
-                                            appointment.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
-                                        )} />
-
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                                                {/* Token Circle */}
                                                 <div className={cn(
-                                                    "w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-black border-2",
-                                                    appointment.status === 'ongoing' ? 'bg-orange-50 text-orange-500 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                                                    "w-12 h-12 rounded-2xl flex flex-col items-center justify-center shrink-0 shadow-lg shadow-current/5 border border-white/20",
+                                                    appointment.status === 'ongoing' ? 'bg-orange-400 text-white' : 'bg-blue-600 text-white'
                                                 )}>
-                                                    {appointment.patient_name.substring(0, 1).toUpperCase()}
+                                                    <span className="text-[7px] font-black uppercase opacity-70 tracking-tighter">T</span>
+                                                    <span className="text-lg font-black leading-none">{String(appointment.token_number).padStart(2, '0')}</span>
                                                 </div>
-                                                <div className="space-y-0.5">
-                                                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
-                                                        {appointment.patient_name}
-                                                        {appointment.booking_source === 'online' && (
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                                        )}
-                                                    </h3>
+
+                                                <div className="space-y-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <p className="text-[10px] text-slate-400 font-bold">
-                                                            T-{String(appointment.token_number).padStart(2, '0')} • {appointment.status === 'ongoing' ? t('ongoing') : t('next')}
-                                                        </p>
+                                                        <h3 className="text-base font-black text-slate-800 tracking-tight truncate">
+                                                            {appointment.patient_name}
+                                                        </h3>
+                                                        {appointment.status === 'ongoing' ? (
+                                                            <span className="flex h-2 w-2 rounded-full bg-orange-400 animate-pulse" />
+                                                        ) : (
+                                                            <div className="bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">
+                                                                {t('next')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                                                        <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100/50">
+                                                            <Globe className="w-3 h-3 text-blue-400" />
+                                                            {appointment.booking_source === 'online' ? t('online') : t('walkIn')}
+                                                        </div>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                        <span>{appointment.appointment_time || 'Walk-in'}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 shrink-0">
                                                 {appointment.payment_status !== 'paid' && (
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => updatePaymentStatus(appointment.id, 'paid')}
-                                                        className={cn(
-                                                            "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl px-3 font-black text-[9px] h-9"
-                                                        )}
+                                                        className="h-10 w-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl p-0 transition-colors"
                                                         disabled={updatingId === appointment.id}
                                                     >
-                                                        {updatingId === appointment.id ? '...' : t('paid')}
+                                                        {updatingId === appointment.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="currentColor" />
+                                                            </svg>
+                                                        )}
                                                     </Button>
                                                 )}
 
                                                 {appointment.status === 'ongoing' ? (
-                                                    <div className="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-100">
-                                                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                                                        className="h-10 px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-emerald-100"
+                                                        disabled={updatingId === appointment.id}
+                                                    >
+                                                        {updatingId === appointment.id ? <Loader2 className="w-4 h-4 animate-spin" /> : t('complete')}
+                                                    </Button>
                                                 ) : (
                                                     <Button
                                                         size="icon"
                                                         onClick={() => updateAppointmentStatus(appointment.id, 'ongoing')}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl w-9 h-9 shadow-lg shadow-blue-100 transition-all active:scale-90"
+                                                        className="h-10 w-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-90"
                                                         disabled={updatingId === appointment.id}
                                                     >
                                                         {updatingId === appointment.id ? (
-                                                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
                                                         ) : (
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                            </svg>
+                                                            <ArrowRight className="w-5 h-5" />
                                                         )}
                                                     </Button>
                                                 )}

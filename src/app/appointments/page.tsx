@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, ChevronRight, Filter, Calendar, Settings, Phone, MapPin, User } from 'lucide-react'
+import { Plus, Search, ChevronRight, Filter, Calendar, Settings, Phone, MapPin, User, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
@@ -908,133 +908,156 @@ export default function AppointmentsPage() {
 
 function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen }: any) {
     const { t } = useLanguage()
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'completed': return 'bg-emerald-500'
+            case 'ongoing': return 'bg-orange-400'
+            default: return 'bg-blue-500'
+        }
+    }
+
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ delay: index * 0.05 }}
+            transition={{ delay: index * 0.05, duration: 0.3 }}
             layout
-            className="bg-white p-4 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-slate-50 relative overflow-hidden group active:scale-[0.99] transition-transform"
+            className="group relative bg-white rounded-[2rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100/50 hover:shadow-[0_20px_40px_rgba(0,0,0,0.04)] transition-all duration-300"
         >
-            {/* Background Accent */}
-            <div className={cn(
-                "absolute top-0 left-0 w-1 h-full",
-                app.status === 'completed' ? 'bg-green-500' :
-                    app.status === 'ongoing' ? 'bg-orange-400' : 'bg-blue-500'
-            )} />
-
-            <div className="flex justify-between items-start gap-3">
-                <div className="flex gap-3">
-                    {/* Token Badge */}
+            {/* Top Row: Token & Status */}
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
                     <div className={cn(
-                        "flex flex-col items-center justify-center w-12 h-14 rounded-2xl text-white shadow-lg shrink-0",
-                        app.status === 'completed' ? 'bg-green-500 shadow-green-100' :
-                            app.status === 'ongoing' ? 'bg-orange-400 shadow-orange-100' :
-                                'bg-blue-500 shadow-blue-100'
+                        "h-10 px-3 rounded-xl flex items-center justify-center gap-2 text-white shadow-lg shadow-current/10",
+                        getStatusColor(app.status)
                     )}>
-                        <span className="text-[8px] font-black opacity-70 uppercase tracking-tighter">{t('token')}</span>
-                        <span className="text-xl font-black leading-none">{String(app.token_number).padStart(2, '0')}</span>
-                    </div>
-
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-base font-black text-slate-800 tracking-tight">{app.patient_name}</h3>
-                            <Badge className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border-0",
-                                app.appointment_type === 'Emergency' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white shadow-sm shadow-blue-100'
-                            )}>
-                                {app.appointment_type || 'New'}
-                            </Badge>
-                        </div>
-
-                        {/* Patient Details Grid */}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <div className="flex items-center gap-1.5 text-slate-500">
-                                <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-600">
-                                    {app.patient_age}{t('ageYearsAbbr')} • {app.patient_gender?.charAt(0)}
-                                </span>
-                            </div>
-                            <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                                <Phone className="w-2.5 h-2.5" />
-                                <span>{app.patient_mobile}</span>
-                            </div>
-                            <div className="col-span-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-400 truncate max-w-[180px]">
-                                <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">{app.address || app.patient_address || t('noAddress')}</span>
-                            </div>
-                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-80">{t('token')}</span>
+                        <span className="text-lg font-black">{String(app.token_number).padStart(2, '0')}</span>
                     </div>
                 </div>
 
-                {/* Top Right Status */}
-                <div className={cn(
-                    "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
-                    app.booking_source === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'
-                )}>
-                    {app.booking_source === 'online' ? t('online') : t('walkIn')}
+                <div className="flex items-center gap-2">
+                    <div className={cn(
+                        "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                        app.booking_source === 'online' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'
+                    )}>
+                        {app.booking_source === 'online' ? t('online') : t('walkIn')}
+                    </div>
+                    {app.payment_status === 'paid' && (
+                        <div className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {t('paid')}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Divider */}
-            <div className="h-px bg-slate-50 my-4" />
+            {/* Middle Row: Patient Main Info */}
+            <div className="flex justify-between items-start gap-4 mb-5">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight truncate">
+                        {app.patient_name}
+                    </h3>
 
-            {/* Actions Container */}
-            <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={cn(
+                            "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border-0",
+                            app.appointment_type === 'Emergency' ? 'bg-red-500 text-white' : 'bg-blue-50 text-blue-600'
+                        )}>
+                            {app.appointment_type || 'New'}
+                        </Badge>
+                        <span className="w-1 h-1 rounded-full bg-slate-300" />
+                        <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-bold">
+                            <User className="w-3 h-3" />
+                            {app.patient_age}{t('ageYearsAbbr')} • {app.patient_gender}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            setAppointmentToDelete(app.id)
+                            setIsDeleteDialogOpen(true)
+                        }}
+                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        disabled={updatingId === app.id}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </Button>
+                </div>
+            </div>
+
+            {/* Secondary Info: Contact & Address */}
+            <div className="bg-slate-50/50 rounded-2xl p-3.5 space-y-2 mb-5">
+                <div className="flex items-center gap-2 text-slate-600">
+                    <div className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
+                        <Phone className="w-3 h-3 text-blue-500" />
+                    </div>
+                    <span className="text-[11px] font-bold tracking-tight">{app.patient_mobile}</span>
+                </div>
+                <div className="flex items-start gap-2 text-slate-500">
+                    <div className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                    </div>
+                    <span className="text-[10px] font-medium leading-relaxed line-clamp-2">
+                        {app.address || app.patient_address || t('noAddress')}
+                    </span>
+                </div>
+            </div>
+
+            {/* Bottom Row: Actions */}
+            <div className="flex gap-3">
                 {(app.status === 'confirmed' || app.status === 'booked') && (
                     <Button
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-70"
+                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-2xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98]"
                         onClick={() => updateAppointmentStatus(app.id, 'ongoing')}
                         disabled={updatingId === app.id}
                     >
-                        {updatingId === app.id ? '...' : t('checkIn')}
+                        {updatingId === app.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                {t('checkIn')}
+                                <ArrowRight className="w-3 h-3" />
+                            </span>
+                        )}
                     </Button>
                 )}
 
                 {app.status === 'ongoing' && (
                     <Button
-                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs h-10 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-70"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
                         onClick={() => updateAppointmentStatus(app.id, 'completed')}
                         disabled={updatingId === app.id}
                     >
-                        {updatingId === app.id ? '...' : t('complete')}
+                        {updatingId === app.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {t('complete')}
+                            </span>
+                        )}
                     </Button>
                 )}
 
                 {app.payment_status !== 'paid' && (
                     <Button
                         variant="outline"
-                        className={cn(
-                            "flex-1 border-0 bg-emerald-50 text-emerald-600 font-black text-xs h-10 rounded-xl hover:bg-emerald-100 transition-all active:scale-95"
-                        )}
+                        className="flex-1 border-2 border-emerald-100 bg-white text-emerald-600 font-black text-[10px] uppercase tracking-widest h-12 rounded-2xl hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-[0.98]"
                         onClick={() => updatePaymentStatus(app.id, 'paid')}
                         disabled={updatingId === app.id}
                     >
-                        {t('markPaid')}
+                        {updatingId === app.id ? <Loader2 className="w-4 h-4 animate-spin" /> : t('markPaid')}
                     </Button>
                 )}
-
-                {/* Action Icons */}
-                <div className="flex gap-1">
-                    {app.payment_status !== 'paid' && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                                setAppointmentToDelete(app.id)
-                                setIsDeleteDialogOpen(true)
-                            }}
-                            className={cn(
-                                "h-10 w-10 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50"
-                            )}
-                            disabled={updatingId === app.id}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </Button>
-                    )}
-                </div>
             </div>
         </motion.div>
     )
