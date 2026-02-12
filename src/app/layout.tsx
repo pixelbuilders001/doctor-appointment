@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 const outfit = Outfit({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ClinicFlow',
+  title: 'Clinic Plus',
   description: 'Modern Clinic Management System',
   manifest: '/manifest.json',
 }

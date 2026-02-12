@@ -42,7 +42,7 @@ export default function ModernLoader() {
                 transition={{ delay: 0.5 }}
                 className="mt-6 text-slate-400 font-bold tracking-widest text-xs uppercase"
             >
-                Loading ClinicFlow...
+                Loading Clinic Plus...
             </motion.p>
         </div>
     )

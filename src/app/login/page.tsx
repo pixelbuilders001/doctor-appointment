@@ -177,25 +177,28 @@ export default function LoginPage() {
                 <div className="relative">
                     {/* Clean White Card */}
                     <div className="relative bg-white border border-slate-200/60 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.06)] overflow-hidden">
-                        {/* Header */}
-                        <div className="text-center mb-8 space-y-3">
+                        <div className="flex flex-col items-center mb-8 space-y-4">
                             <motion.div
-                                initial={{ scale: 0.5, opacity: 0 }}
+                                initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                className="mx-auto w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4"
+                                transition={{ duration: 0.5 }}
+                                className="relative"
                             >
-                                <Activity className="w-7 h-7 text-white" />
+                                <img
+                                    src="/images/logo.png"
+                                    alt="Clinic Plus Logo"
+                                    className="w-40 h-auto object-contain drop-shadow-sm"
+                                />
                             </motion.div>
 
-                            <motion.h1
+                            {/* <motion.h1
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
                                 className="text-3xl font-black text-slate-900 tracking-tight"
                             >
-                                ClinicFlow
-                            </motion.h1>
+                                Clinic Plus
+                            </motion.h1> */}
 
                             <motion.p
                                 initial={{ opacity: 0, y: 5 }}
@@ -261,7 +264,7 @@ export default function LoginPage() {
                                             </div>
                                             <Input
                                                 type="email"
-                                                placeholder="doctor@clinicflow.com"
+                                                placeholder="doctor@clinicplus.com"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="bg-slate-50 border-slate-100 hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 h-12 rounded-2xl pl-11 transition-all duration-300 text-slate-900 placeholder:text-slate-400"
@@ -359,7 +362,7 @@ export default function LoginPage() {
                     className="mt-10 text-center"
                 >
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Need assistance? <a href="mailto:support@clinicflow.com" className="text-blue-600 hover:underline">Contact Support</a>
+                        Need assistance? <a href="mailto:support@clinicplus.com" className="text-blue-600 hover:underline">Contact Support</a>
                     </p>
                 </motion.div>
             </motion.div>
