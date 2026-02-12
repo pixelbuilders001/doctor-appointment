@@ -17,6 +17,7 @@ import ModernLoader from '@/components/ModernLoader'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
+import PwaInstallButton from '@/components/PwaInstallButton'
 
 export default function SettingsPage() {
     const { t, language, setLanguage } = useLanguage()
@@ -323,6 +324,8 @@ export default function SettingsPage() {
                         <ChevronLeft className="h-6 w-6" />
                     </Button>
                     <h1 className="text-xl font-bold text-slate-800">{t('settings')}</h1>
+                    <div className="flex-1" />
+                    <PwaInstallButton />
                 </div>
                 {/* {isReadOnly && (
                     <div className="mx-6 mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
