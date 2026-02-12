@@ -425,7 +425,7 @@ export default function DashboardPage() {
                                                             {appointment.booking_source === 'online' ? t('online') : t('walkIn')}
                                                         </div>
                                                         <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                        <span>{appointment.appointment_time || 'Walk-in'}</span>
+                                                        {/* <span>{appointment.appointment_time || 'Walk-in'}</span> */}
                                                     </div>
                                                 </div>
                                             </div>
