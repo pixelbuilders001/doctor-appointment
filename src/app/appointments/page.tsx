@@ -589,7 +589,7 @@ export default function AppointmentsPage() {
                                             updatePaymentStatus={updatePaymentStatus}
                                             setAppointmentToDelete={setAppointmentToDelete}
                                             setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                                            openPaymentModal={(app) => {
+                                            openPaymentModal={(app: Appointment) => {
                                                 setSelectedAppointmentForPayment(app)
                                                 setPaymentModalOpen(true)
                                             }}
@@ -598,18 +598,20 @@ export default function AppointmentsPage() {
                                 )
                             }
                             return (
-                                <AppointmentCard key={app.id} app={app} index={index}
-                                    updatingId={updatingId}
-                                    userRole={userRole}
-                                    updateAppointmentStatus={updateAppointmentStatus}
-                                    updatePaymentStatus={updatePaymentStatus}
-                                    setAppointmentToDelete={setAppointmentToDelete}
-                                    setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-                                    openPaymentModal={(app) => {
-                                        setSelectedAppointmentForPayment(app)
-                                        setPaymentModalOpen(true)
-                                    }}
-                                />
+                                <div key={app.id}>
+                                    <AppointmentCard app={app} index={index}
+                                        updatingId={updatingId}
+                                        userRole={userRole}
+                                        updateAppointmentStatus={updateAppointmentStatus}
+                                        updatePaymentStatus={updatePaymentStatus}
+                                        setAppointmentToDelete={setAppointmentToDelete}
+                                        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                        openPaymentModal={(app: Appointment) => {
+                                            setSelectedAppointmentForPayment(app)
+                                            setPaymentModalOpen(true)
+                                        }}
+                                    />
+                                </div>
                             )
                         })}
                     </AnimatePresence>
@@ -936,7 +938,29 @@ export default function AppointmentsPage() {
     )
 }
 
-function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen, openPaymentModal }: any) {
+interface AppointmentCardProps {
+    app: Appointment
+    index: number
+    updatingId: string | null
+    userRole: string | null
+    updateAppointmentStatus: (id: string, status: string) => void
+    updatePaymentStatus: (id: string, status: string) => void
+    setAppointmentToDelete: (app: Appointment) => void
+    setIsDeleteDialogOpen: (open: boolean) => void
+    openPaymentModal: (app: Appointment) => void
+}
+
+function AppointmentCard({
+    app,
+    index,
+    updatingId,
+    userRole,
+    updateAppointmentStatus,
+    updatePaymentStatus,
+    setAppointmentToDelete,
+    setIsDeleteDialogOpen,
+    openPaymentModal
+}: AppointmentCardProps) {
     const { t } = useLanguage()
 
     const getStatusColor = (status: string) => {
