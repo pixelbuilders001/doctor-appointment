@@ -181,7 +181,8 @@ export const translations = {
         recordPayment: 'Record Payment',
         paymentRecordedDesc: 'Payment via {method} recorded successfully!',
         upiQrRequired: 'UPI payment requires a QR code to be configured in settings',
-        noQrConfigured: 'No UPI QR code configured'
+        noQrConfigured: 'No UPI QR code configured',
+        uploading: 'Uploading...'
     },
     hi: {
         // Navigation
@@ -363,7 +364,8 @@ export const translations = {
         recordPayment: 'भुगतान दर्ज करें',
         paymentRecordedDesc: '{method} के माध्यम से भुगतान सफलतापूर्वक दर्ज किया गया!',
         upiQrRequired: 'UPI भुगतान के लिए सेटिंग्स में QR कोड कॉन्फ़िगर करना आवश्यक है',
-        noQrConfigured: 'कोई UPI QR कोड कॉन्फ़िगर नहीं है'
+        noQrConfigured: 'कोई UPI QR कोड कॉन्फ़िगर नहीं है',
+        uploading: 'अपलोड हो रहा है...'
     }
 };
 

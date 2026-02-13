@@ -1,32 +1,70 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+    Calendar as CalendarIcon,
+    Clock,
+    MoreVertical,
+    Trash2,
+    CheckCircle2,
+    XCircle,
+    FileText,
+    Filter,
+    Search,
+    Plus,
+    ChevronRight,
+    MapPin,
+    User,
+    Phone,
+    Settings,
+    ArrowRight,
+    Calendar
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { motion, AnimatePresence } from 'framer-motion'
+import { format } from 'date-fns'
+import PageTransition from '@/components/PageTransition'
+import ModernLoader from '@/components/ModernLoader'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, ChevronRight, Filter, Calendar, Settings, Phone, MapPin, User, ArrowRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { motion, AnimatePresence } from 'framer-motion'
-import PageTransition from '@/components/PageTransition'
-import ModernLoader from '@/components/ModernLoader'
-import { cn } from '@/lib/utils'
-import { useLanguage } from '@/contexts/LanguageContext'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
 import { useToast } from '@/hooks/use-toast'
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
-import { getAppointments } from '@/app/actions/appointments'
-import { useRef, useCallback } from 'react'
 import PaymentModal from '@/components/PaymentModal'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import { getAppointments } from '@/app/actions/appointments'
+
 
 interface Appointment {
     id: string
     token_number: number
     patient_name: string
     patient_mobile: string
-    patient_age?: number
+    patient_age?: string
     patient_gender?: string
     patient_address?: string
     appointment_time?: string
@@ -34,7 +72,10 @@ interface Appointment {
     visit_reason?: string
     status: string
     appointment_type: string
+    appointment_date: string
     payment_status?: 'pending' | 'paid'
+    created_at: string
+    booking_source?: string
 }
 
 export default function AppointmentsPage() {
@@ -81,6 +122,7 @@ export default function AppointmentsPage() {
         patient_address: '',
         appointment_type: 'New',
         appointment_date: new Date().toISOString().split('T')[0],
+        booking_source: 'Walk-in',
     })
     const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -369,6 +411,7 @@ export default function AppointmentsPage() {
                 patient_address: '',
                 appointment_type: 'New',
                 appointment_date: new Date().toISOString().split('T')[0],
+                booking_source: 'Walk-in',
             })
             // Fetch will happen via realtime
             // Fetch will happen via realtime, but manual fetch is safer for immediate feedback
@@ -587,7 +630,7 @@ export default function AppointmentsPage() {
                                             userRole={userRole}
                                             updateAppointmentStatus={updateAppointmentStatus}
                                             updatePaymentStatus={updatePaymentStatus}
-                                            setAppointmentToDelete={setAppointmentToDelete}
+                                            setAppointmentToDelete={(id: string | null) => setAppointmentToDelete(id)}
                                             setIsDeleteDialogOpen={setIsDeleteDialogOpen}
                                             openPaymentModal={(app: Appointment) => {
                                                 setSelectedAppointmentForPayment(app)
@@ -604,7 +647,7 @@ export default function AppointmentsPage() {
                                         userRole={userRole}
                                         updateAppointmentStatus={updateAppointmentStatus}
                                         updatePaymentStatus={updatePaymentStatus}
-                                        setAppointmentToDelete={setAppointmentToDelete}
+                                        setAppointmentToDelete={(id: string | null) => setAppointmentToDelete(id)}
                                         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
                                         openPaymentModal={(app: Appointment) => {
                                             setSelectedAppointmentForPayment(app)
@@ -634,6 +677,11 @@ export default function AppointmentsPage() {
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-lg font-black text-slate-800">{t('deleteAppointmentTitle')}</h3>
+                            {appointmentToDelete && (
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                    {format(new Date(appointments.find(app => app.id === appointmentToDelete)?.appointment_date || ''), 'MMM d, yyyy')}
+                                </span>
+                            )}
                             <p className="text-xs text-slate-500 font-medium leading-relaxed">
                                 {t('deleteAppointmentDescription')}
                             </p>
@@ -945,7 +993,7 @@ interface AppointmentCardProps {
     userRole: string | null
     updateAppointmentStatus: (id: string, status: string) => void
     updatePaymentStatus: (id: string, status: string) => void
-    setAppointmentToDelete: (app: Appointment) => void
+    setAppointmentToDelete: (id: string | null) => void
     setIsDeleteDialogOpen: (open: boolean) => void
     openPaymentModal: (app: Appointment) => void
 }
