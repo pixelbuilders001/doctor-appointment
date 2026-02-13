@@ -481,25 +481,7 @@ export default function DashboardPage() {
                     </div>
                 </motion.div>
 
-                {/* Map Placeholder */}
-                {/* <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="h-32 rounded-3xl overflow-hidden relative shadow-sm"
-                >
-                    <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{ backgroundImage: "url('https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.2090,28.6139,13,0/600x300?access_token=YOUR_TOKEN')" }}>
-                        <div className="w-full h-full bg-slate-200"></div>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
-                        <div className="flex items-center gap-2 text-white">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-xs font-bold">New Delhi, South Delhi</span>
-                        </div>
-                    </div>
-                </motion.div> */}
 
-                {/* QR Code Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
