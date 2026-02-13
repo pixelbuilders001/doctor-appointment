@@ -154,7 +154,34 @@ export const translations = {
         resetPassword: 'Reset Password',
         sendResetLink: 'Send Reset Link',
         resetLinkSent: 'Reset link sent to your email!',
-        backToLogin: 'Back to Login'
+        backToLogin: 'Back to Login',
+
+        // Payments
+        addQr: 'Add QR',
+        addPaymentQr: 'Add Payment QR',
+        clickToUploadQr: 'Click to Upload QR',
+        qrFileLimit: 'PNG, JPG up to 5MB',
+        changeImage: 'Change Image',
+        upiIdOptional: 'UPI ID (Optional)',
+        setAsPrimary: 'Set as Primary',
+        shownToPatients: 'Shown to patients',
+        saveQrCode: 'Save QR Code',
+        imageRequired: 'Image Required',
+        uploadQrImageError: 'Please upload a QR code image',
+        primarySet: 'Primary Set',
+        primarySetDesc: 'Default payment method updated.',
+        qrDeleted: 'QR code removed.',
+        noQrCodes: 'No QR codes found',
+        noQrCodesDesc: 'Add your first payment QR code to accept UPI payments.',
+        upiPayment: 'UPI Payment',
+        selectPaymentMethod: 'Select Payment Method',
+        cash: 'Cash',
+        upi: 'UPI',
+        paymentRecorded: 'Payment Recorded',
+        recordPayment: 'Record Payment',
+        paymentRecordedDesc: 'Payment via {method} recorded successfully!',
+        upiQrRequired: 'UPI payment requires a QR code to be configured in settings',
+        noQrConfigured: 'No UPI QR code configured'
     },
     hi: {
         // Navigation
@@ -309,7 +336,34 @@ export const translations = {
         resetPassword: 'पासवर्ड रीसेट करें',
         sendResetLink: 'रीसेट लिंक भेजें',
         resetLinkSent: 'आपके ईमेल पर रीसेट लिंक भेज दिया गया है!',
-        backToLogin: 'लॉगिन पर वापस जाएं'
+        backToLogin: 'लॉगिन पर वापस जाएं',
+
+        // Payments
+        addQr: 'QR जोड़ें',
+        addPaymentQr: 'पेमेंट QR जोड़ें',
+        clickToUploadQr: 'QR अपलोड करने के लिए क्लिक करें',
+        qrFileLimit: 'PNG, JPG 5MB तक',
+        changeImage: 'इमेज बदलें',
+        upiIdOptional: 'UPI ID (वैकल्पिक)',
+        setAsPrimary: 'प्राथमिक सेट करें',
+        shownToPatients: 'मरीजों को दिखाया जाएगा',
+        saveQrCode: 'QR कोड सहेजें',
+        imageRequired: 'इमेज आवश्यक है',
+        uploadQrImageError: 'कृपया एक QR कोड इमेज अपलोड करें',
+        primarySet: 'प्राथमिक सेट किया गया',
+        primarySetDesc: 'डिफ़ॉल्ट भुगतान विधि अपडेट की गई।',
+        qrDeleted: 'QR कोड हटा दिया गया।',
+        noQrCodes: 'कोई QR कोड नहीं मिला',
+        noQrCodesDesc: 'UPI भुगतान स्वीकार करने के लिए अपना पहला भुगतान QR कोड जोड़ें।',
+        upiPayment: 'UPI भुगतान',
+        selectPaymentMethod: 'भुगतान विधि चुनें',
+        cash: 'नकद',
+        upi: 'UPI',
+        paymentRecorded: 'भुगतान दर्ज किया गया',
+        recordPayment: 'भुगतान दर्ज करें',
+        paymentRecordedDesc: '{method} के माध्यम से भुगतान सफलतापूर्वक दर्ज किया गया!',
+        upiQrRequired: 'UPI भुगतान के लिए सेटिंग्स में QR कोड कॉन्फ़िगर करना आवश्यक है',
+        noQrConfigured: 'कोई UPI QR कोड कॉन्फ़िगर नहीं है'
     }
 };
 

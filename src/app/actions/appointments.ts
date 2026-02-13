@@ -127,3 +127,30 @@ export async function getAppointments(params: GetAppointmentsParams) {
         return { appointments: [], count: 0, hasMore: false, counts: { new: 0, ongoing: 0, completed: 0 }, error: error.message }
     }
 }
+
+export async function getPrimaryQrCode(clinicId: string) {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase
+            .from('clinic_upi_qr_codes')
+            .select('*')
+            .eq('clinic_id', clinicId)
+            .eq('is_primary', true)
+            .eq('status', 'active')
+            .single()
+
+        if (error) {
+            // No primary QR code found is not an error
+            if (error.code === 'PGRST116') {
+                return { data: null }
+            }
+            return { error: error.message }
+        }
+
+        return { data }
+    } catch (error: any) {
+        console.error('Error fetching primary QR code:', error)
+        return { error: error.message }
+    }
+}

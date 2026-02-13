@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 import PwaInstallButton from '@/components/PwaInstallButton'
+import UPIQrCodeManager from '@/components/UPIQrCodeManager'
 
 export default function SettingsPage() {
     const { t, language, setLanguage } = useLanguage()
@@ -595,6 +596,18 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </motion.section>
+
+                {/* Payments Section (Doctors Only) */}
+                {!isReadOnly && clinicId && (
+                    <motion.section
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="space-y-4"
+                    >
+                        <UPIQrCodeManager clinicId={clinicId} />
+                    </motion.section>
+                )}
 
                 {/* Notifications Section */}
                 {/* <motion.section

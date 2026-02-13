@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { getAppointments } from '@/app/actions/appointments'
 import { useRef, useCallback } from 'react'
+import PaymentModal from '@/components/PaymentModal'
 
 interface Appointment {
     id: string
@@ -68,6 +69,8 @@ export default function AppointmentsPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [appointmentToDelete, setAppointmentToDelete] = useState<string | null>(null)
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+    const [selectedAppointmentForPayment, setSelectedAppointmentForPayment] = useState<Appointment | null>(null)
     const { toast } = useToast()
 
     const [newAppointment, setNewAppointment] = useState({
@@ -586,6 +589,10 @@ export default function AppointmentsPage() {
                                             updatePaymentStatus={updatePaymentStatus}
                                             setAppointmentToDelete={setAppointmentToDelete}
                                             setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                            openPaymentModal={(app) => {
+                                                setSelectedAppointmentForPayment(app)
+                                                setPaymentModalOpen(true)
+                                            }}
                                         />
                                     </div>
                                 )
@@ -598,6 +605,10 @@ export default function AppointmentsPage() {
                                     updatePaymentStatus={updatePaymentStatus}
                                     setAppointmentToDelete={setAppointmentToDelete}
                                     setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                    openPaymentModal={(app) => {
+                                        setSelectedAppointmentForPayment(app)
+                                        setPaymentModalOpen(true)
+                                    }}
                                 />
                             )
                         })}
@@ -683,6 +694,10 @@ export default function AppointmentsPage() {
                                     updatePaymentStatus={updatePaymentStatus}
                                     setAppointmentToDelete={setAppointmentToDelete}
                                     setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+                                    openPaymentModal={(app) => {
+                                        setSelectedAppointmentForPayment(app)
+                                        setPaymentModalOpen(true)
+                                    }}
                                 />
                             ))
                         ) : sheetSearchQuery.trim() ? (
@@ -902,11 +917,26 @@ export default function AppointmentsPage() {
                     </button>
                 </div>
             </nav>
+
+            {/* Payment Modal */}
+            {selectedAppointmentForPayment && (
+                <PaymentModal
+                    isOpen={paymentModalOpen}
+                    onClose={() => {
+                        setPaymentModalOpen(false)
+                        setSelectedAppointmentForPayment(null)
+                    }}
+                    appointmentId={selectedAppointmentForPayment.id}
+                    clinicId={clinicId!}
+                    patientName={selectedAppointmentForPayment.patient_name}
+                    onPaymentComplete={() => fetchAppointments(true)}
+                />
+            )}
         </PageTransition >
     )
 }
 
-function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen }: any) {
+function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentStatus, updatePaymentStatus, setAppointmentToDelete, setIsDeleteDialogOpen, openPaymentModal }: any) {
     const { t } = useLanguage()
 
     const getStatusColor = (status: string) => {
@@ -1052,7 +1082,7 @@ function AppointmentCard({ app, index, updatingId, userRole, updateAppointmentSt
                     <Button
                         variant="outline"
                         className="flex-1 border-2 border-emerald-100 bg-white text-emerald-600 font-black text-[10px] uppercase tracking-widest h-12 rounded-2xl hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-[0.98]"
-                        onClick={() => updatePaymentStatus(app.id, 'paid')}
+                        onClick={() => openPaymentModal(app)}
                         disabled={updatingId === app.id}
                     >
                         {updatingId === app.id ? <Loader2 className="w-4 h-4 animate-spin" /> : t('markPaid')}
