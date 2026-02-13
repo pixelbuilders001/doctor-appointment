@@ -13,7 +13,8 @@ import {
     X,
     CreditCard,
     Building2,
-    Info
+    Info,
+    CheckCircle2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -302,58 +303,69 @@ export default function UPIQrCodeManager({ clinicId }: { clinicId: string }) {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    key={qr.id}
                                     className={cn(
-                                        "p-4 flex items-center justify-between group rounded-2xl transition-all",
-                                        qr.is_primary ? "bg-blue-50/30 ring-1 ring-blue-100" : "hover:bg-slate-50/50"
+                                        "group relative bg-white rounded-lg p-2 border transition-all duration-300",
+                                        qr.is_primary
+                                            ? "border-blue-100 bg-blue-50/10 shadow-sm"
+                                            : "border-slate-100 hover:border-slate-200"
                                     )}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative">
-                                            <div className="w-14 h-14 rounded-2xl bg-white p-1 border border-slate-100 shadow-sm overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform cursor-pointer"
-                                                onClick={() => window.open(qr.qr_image_url, '_blank')}
-                                            >
-                                                <img src={qr.qr_image_url} alt="QR" className="w-full h-full object-contain" />
-                                            </div>
-                                            {qr.is_primary && (
-                                                <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                                                    <Star className="w-3 h-3 text-white fill-current" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-700 leading-none">
-                                                {qr.upi_id || 'UPI Payment'}
-                                                {qr.is_primary && <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-[9px] text-blue-600 rounded-full font-black uppercase">Primary</span>}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {!qr.is_primary && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
-                                                onClick={() => handleSetPrimary(qr.id)}
-                                                disabled={settingPrimary === qr.id}
-                                                title="Set as Default"
-                                            >
-                                                {settingPrimary === qr.id ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <Star className="w-4 h-4" />
-                                                )}
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
-                                            onClick={() => handleDelete(qr.id, qr.qr_image_url)}
-                                            title="Delete"
+                                    <div className="flex items-center gap-2">
+                                        {/* QR Image - Hyper Compact */}
+                                        <div className="w-10 h-10 bg-white rounded-md p-0.5 shrink-0 border border-slate-100 cursor-pointer shadow-sm"
+                                            onClick={() => window.open(qr.qr_image_url, '_blank')}
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                            <img
+                                                src={qr.qr_image_url}
+                                                alt="QR"
+                                                className="w-full h-full object-contain"
+                                            />
+                                        </div>
+
+                                        {/* Info & Actions - Minimalist */}
+                                        <div className="flex-1 min-w-0 flex items-center justify-between gap-1.5">
+                                            <div className="min-w-0">
+                                                <div className="flex flex-col">
+                                                    {qr.upi_id ? (
+                                                        <p className="text-[11px] font-bold text-slate-700 truncate tracking-tight">{qr.upi_id}</p>
+                                                    ) : (
+                                                        <p className="text-[10px] font-medium text-slate-400 italic">No UPI ID</p>
+                                                    )}
+                                                    {qr.is_primary && (
+                                                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-tighter">
+                                                            {t('primary')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-0.5 shrink-0">
+                                                {!qr.is_primary && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleSetPrimary(qr.id)}
+                                                        disabled={settingPrimary === qr.id}
+                                                        className="h-7 px-1.5 text-[10px] font-bold text-blue-600 hover:bg-blue-50 rounded-md"
+                                                    >
+                                                        {settingPrimary === qr.id ? (
+                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            t('setAsPrimary')
+                                                        )}
+                                                    </Button>
+                                                )}
+
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleDelete(qr.id, qr.qr_image_url)}
+                                                    className="h-7 w-7 p-0 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </motion.div>
                             ))}
