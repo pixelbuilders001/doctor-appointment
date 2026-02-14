@@ -2,8 +2,16 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Clock, Phone, Star, ShieldCheck, ArrowRight, Share2 } from 'lucide-react'
+import { MapPin, Clock, Phone, Star, ShieldCheck, ArrowRight, Share2, Search, Hash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input'
 import { ClinicData } from '@/app/actions/public-profile'
 import { useRouter } from 'next/navigation'
 import PageTransition from '@/components/PageTransition'
@@ -18,6 +26,8 @@ export default function PublicProfileClient({ clinic, slug }: Props) {
     const router = useRouter()
     const { toast } = useToast()
     const { clinic_settings } = clinic
+    const [isTrackOpen, setIsTrackOpen] = React.useState(false)
+    const [inputTrackingId, setInputTrackingId] = React.useState('')
 
     // Extract Lat/Long from Google Maps URL if possible
     const getEmbedUrl = () => {
@@ -80,6 +90,19 @@ export default function PublicProfileClient({ clinic, slug }: Props) {
         }
     }
 
+    const handleTrackSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!inputTrackingId.trim()) return
+
+        const cleanId = inputTrackingId.trim().toUpperCase()
+        if (!cleanId.startsWith('TK-') && cleanId.length > 0) {
+            router.push(`/track/TK-${cleanId}`)
+        } else {
+            router.push(`/track/${cleanId}`)
+        }
+        setIsTrackOpen(false)
+    }
+
     return (
         <PageTransition className="min-h-screen bg-[#F8F9FD] pb-24 font-sans relative">
             {/* Header Image / Gradient */}
@@ -96,11 +119,54 @@ export default function PublicProfileClient({ clinic, slug }: Props) {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
-                <div className="absolute top-4 right-4 z-10">
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                    <Dialog open={isTrackOpen} onOpenChange={setIsTrackOpen}>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-10 px-3.5 text-white hover:bg-white/20 rounded-full font-bold text-xs flex items-center gap-1.5"
+                            >
+                                <Search className="w-4 h-4" />
+                                <span>Track</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md rounded-[2rem] border-none shadow-2xl">
+                            <DialogHeader>
+                                <DialogTitle className="text-xl font-bold text-slate-800">Track Appointment</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleTrackSubmit} className="space-y-4 pt-4">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-medium text-slate-500">Enter your Tracking ID to view status</p>
+                                    <div className="relative">
+                                        <Hash className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                        <Input
+                                            value={inputTrackingId}
+                                            onChange={(e) => setInputTrackingId(e.target.value)}
+                                            placeholder="e.g. 7F3K9Q"
+                                            className="h-14 rounded-2xl border-slate-100 bg-slate-50 pl-12 text-lg font-bold placeholder:text-slate-300 focus:ring-blue-600 transition-all"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-medium pl-1 italic">
+                                        * Tracking ID was shown on your booking confirmation screen.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="submit"
+                                    disabled={!inputTrackingId.trim()}
+                                    className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg shadow-blue-100 disabled:opacity-50"
+                                >
+                                    Track Now
+                                </Button>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="text-white hover:bg-white/20 rounded-full"
+                        className="text-white hover:bg-white/20 rounded-full h-10 w-10 shrink-0"
                         onClick={shareProfile}
                     >
                         <Share2 className="w-5 h-5" />

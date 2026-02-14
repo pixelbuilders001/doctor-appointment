@@ -36,6 +36,7 @@ export type AppointmentResponse = {
     success: boolean
     message?: string
     token_number?: number
+    tracking_id?: string
 }
 
 export async function getClinicBySlug(slug: string): Promise<ClinicData | null> {
@@ -100,7 +101,7 @@ export async function createPublicAppointment(data: AppointmentInput): Promise<A
     }
 
     // 3. Create Appointment 
-    const { error: insertError } = await supabase
+    const { data: record, error: insertError } = await supabase
         .from('appointments')
         .insert({
             clinic_id: clinic.id,
@@ -115,13 +116,16 @@ export async function createPublicAppointment(data: AppointmentInput): Promise<A
             status: 'confirmed',
             appointment_type: appointment_type, // Use selected type
             appointment_time: null,
-            payment_status: 'pending'
+            payment_status: 'pending',
+            tracking_id: `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         })
+        .select('tracking_id')
+        .single()
 
     if (insertError) {
         console.error('Error creating appointment:', insertError)
         return { success: false, message: 'Failed to book appointment' }
     }
 
-    return { success: true, token_number: tokenNumber }
+    return { success: true, token_number: tokenNumber, tracking_id: record?.tracking_id }
 }

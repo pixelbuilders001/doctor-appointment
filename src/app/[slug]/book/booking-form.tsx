@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { Loader2, CheckCircle2, ChevronLeft, Calendar as CalendarIcon, User, Phone as PhoneIcon, FileText, ChevronRight, Hash } from 'lucide-react'
+import { Loader2, CheckCircle2, ChevronLeft, Calendar as CalendarIcon, User, Phone as PhoneIcon, FileText, ChevronRight, Hash, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,8 @@ export default function BookingForm({ clinic, slug }: BookingFormProps) {
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [tokenNumber, setTokenNumber] = useState<number | null>(null)
+    const [trackingId, setTrackingId] = useState<string | null>(null)
+    const [copied, setCopied] = useState(false)
     const [step, setStep] = useState(1)
 
     // Form State
@@ -88,6 +90,7 @@ export default function BookingForm({ clinic, slug }: BookingFormProps) {
 
             if (result.success) {
                 setTokenNumber(result.token_number || null)
+                setTrackingId(result.tracking_id || null)
                 setSuccess(true)
             } else {
                 toast({
@@ -126,6 +129,17 @@ export default function BookingForm({ clinic, slug }: BookingFormProps) {
 
     const prevStep = () => setStep(step - 1)
 
+    const copyTrackingId = () => {
+        if (!trackingId) return
+        navigator.clipboard.writeText(trackingId)
+        setCopied(true)
+        toast({
+            title: "Copied!",
+            description: "Tracking ID copied to clipboard.",
+        })
+        setTimeout(() => setCopied(false), 2000)
+    }
+
     if (success) {
         return (
             <motion.div
@@ -148,6 +162,25 @@ export default function BookingForm({ clinic, slug }: BookingFormProps) {
                     </div>
                 </div>
 
+                {trackingId && (
+                    <div className="mb-6 w-full max-w-xs">
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-4">
+                            <div className="text-left">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tracking ID</p>
+                                <p className="text-lg font-black text-slate-700 tracking-wider font-mono">{trackingId}</p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={copyTrackingId}
+                                className="h-12 w-12 rounded-xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all active:scale-95"
+                            >
+                                {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5 text-slate-400" />}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 <p className="text-slate-500 mb-2 max-w-xs mx-auto text-sm">
                     Doctor sees patients in order of token numbers.
                 </p>
@@ -156,6 +189,14 @@ export default function BookingForm({ clinic, slug }: BookingFormProps) {
                 </p>
 
                 <div className="w-full max-w-xs space-y-3">
+                    {trackingId && (
+                        <Button
+                            onClick={() => router.push(`/track/${trackingId}`)}
+                            className="w-full h-14 rounded-2xl bg-slate-900 text-white hover:bg-black font-bold shadow-lg"
+                        >
+                            Track Your Token
+                        </Button>
+                    )}
                     {clinic.maps_link && (
                         <Button
                             onClick={() => window.open(clinic.maps_link || '', '_blank')}
