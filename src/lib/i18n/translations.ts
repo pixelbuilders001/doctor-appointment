@@ -183,7 +183,21 @@ export const translations = {
         paymentRecordedDesc: 'Payment via {method} recorded successfully!',
         upiQrRequired: 'UPI payment requires a QR code to be configured in settings',
         noQrConfigured: 'No UPI QR code configured',
-        uploading: 'Uploading...'
+        uploading: 'Uploading...',
+
+        // Earnings
+        earnings: 'Earnings',
+        totalEarnings: 'Total Earnings',
+        cashEarnings: 'Cash',
+        upiEarnings: 'UPI',
+        patientList: 'Patient List',
+        paymentHistory: 'Payment History',
+        noEarnings: 'No earnings recorded for this date',
+        selectDate: 'Select Date',
+        today: 'Today',
+        yesterday: 'Yesterday',
+        thisMonth: 'This Month',
+        allTime: 'All Time'
     },
     hi: {
         // Navigation
@@ -367,7 +381,21 @@ export const translations = {
         paymentRecordedDesc: '{method} के माध्यम से भुगतान सफलतापूर्वक दर्ज किया गया!',
         upiQrRequired: 'UPI भुगतान के लिए सेटिंग्स में QR कोड कॉन्फ़िगर करना आवश्यक है',
         noQrConfigured: 'कोई UPI QR कोड कॉन्फ़िगर नहीं है',
-        uploading: 'अपलोड हो रहा है...'
+        uploading: 'अपलोड हो रहा है...',
+
+        // Earnings
+        earnings: 'कमाई',
+        totalEarnings: 'कुल कमाई',
+        cashEarnings: 'नकद',
+        upiEarnings: 'UPI',
+        patientList: 'मरीजों की सूची',
+        paymentHistory: 'भुगतान का इतिहास',
+        noEarnings: 'इस तारीख के लिए कोई कमाई दर्ज नहीं की गई है',
+        selectDate: 'तारीख चुनें',
+        today: 'आज',
+        yesterday: 'कल',
+        thisMonth: 'इस महीने',
+        allTime: 'कुल समय'
     }
 };
 

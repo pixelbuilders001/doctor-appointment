@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
+import BottomNav from '@/components/BottomNav'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -925,48 +926,7 @@ export default function AppointmentsPage() {
             </Dialog>
 
             {/* Modern Bottom Navigation */}
-            <nav className="fixed bottom-6 left-6 right-6 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.08)] z-50">
-                <div className="flex justify-around items-center h-full px-4 max-w-md mx-auto">
-                    <button
-                        onClick={() => router.push('/dashboard')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('home')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center justify-center gap-1 group relative"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-blue-100",
-                            "bg-blue-600 text-white"
-                        )}>
-                            <Calendar className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-black text-blue-600">{t('schedule')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <Settings className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('settings')}</span>
-                    </button>
-                </div>
-            </nav>
+            <BottomNav role={userRole} />
 
             {/* Payment Modal */}
             {selectedAppointmentForPayment && (

@@ -54,11 +54,21 @@ export default function PaymentModal({
     const handlePayment = async (method: 'cash' | 'upi') => {
         setProcessing(true)
         try {
+            // Fetch consultation fee from clinics table
+            const { data: clinic } = await supabase
+                .from('clinics')
+                .select('consultation_fee')
+                .eq('id', clinicId)
+                .single()
+
+            const fee = clinic?.consultation_fee || 0
+
             const { error } = await supabase
                 .from('appointments')
                 .update({
                     payment_status: 'paid',
-                    payment_method: method
+                    payment_method: method,
+                    fee: fee
                 })
                 .eq('id', appointmentId)
 

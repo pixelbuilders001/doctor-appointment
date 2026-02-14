@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '@/components/PageTransition'
 import ModernLoader from '@/components/ModernLoader'
+import BottomNav from '@/components/BottomNav'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -497,72 +498,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Modern Bottom Navigation */}
-            <nav className="fixed bottom-6 left-6 right-6 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.08)] z-50">
-                <div className="flex justify-around items-center h-full px-4 max-w-md mx-auto">
-                    <button
-                        onClick={() => router.push('/dashboard')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-blue-100",
-                            "bg-blue-600 text-white"
-                        )}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                        </div>
-                        <span className="text-[10px] font-black text-blue-600">{t('home')}</span>
-                    </button>
-
-                    {/* <button
-                        onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Schedule</span>
-                    </button> */}
-                    <button
-                        onClick={() => router.push('/appointments')}
-                        className="flex flex-col items-center justify-center gap-1 group relative"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <Calendar className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('schedule')}</span>
-                    </button>
-                    <button
-                        onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <Settings className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">{t('settings')}</span>
-                    </button>
-
-                    {/* <button
-                        onClick={() => router.push('/settings')}
-                        className="flex flex-col items-center justify-center gap-1 group relative transition-all duration-300"
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300",
-                            "text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600"
-                        )}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="10" cy="10" r="3" /></svg>
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600">Settings</span>
-                    </button> */}
-                </div>
-            </nav>
+            <BottomNav role={userRole} />
         </PageTransition>
     )
 }
